@@ -3,7 +3,7 @@
 ## 基础语法
 
 * [单元测试](unit-testing/chapter.md)
-* pythonic code https://gist.github.com/JeffPaine/6213790
+* [list 和 map](list-and-map/chapter.md)
 * collections.defaultdict
 * golang slice
 * c++ pointer&reference ownership

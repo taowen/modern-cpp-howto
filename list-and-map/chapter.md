@@ -1,5 +1,10 @@
 # list 和 map
 
+本节例子选自：https://gist.github.com/JeffPaine/6213790
+
+对 python 这样的动态语言最直观的感受就是 list/map 两种数据结构打天下。php 和 lua 甚至把这两个都合并成一种数据结构了。
+毋庸置疑，学会如何使用 list 和 map 是基础中的基础。
+
 ## for 循环
 
 Python 版本
