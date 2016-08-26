@@ -9,7 +9,7 @@
 
 Python 版本
 
-```
+```python
 import unittest
 
 
@@ -29,7 +29,7 @@ C++ 版本
 ./b2 install toolset=clang cxxflags="-stdlib=libc++" linkflags="-stdlib=libc++"
 ```
 
-```
+```c++
 #define CATCH_CONFIG_MAIN
 #include <boost/range/irange.hpp>
 #include <iostream>
@@ -45,7 +45,7 @@ TEST_CASE("foreach on lazy range") {
 
 更常规的写法，还是直接写普通的for循环
 
-```
+```c++
 #define CATCH_CONFIG_MAIN
 #include <iostream>
 
@@ -62,7 +62,7 @@ TEST_CASE("foreach on lazy range in real world") {
 
 Python 版本
 
-```
+```python
 import unittest
 
 
@@ -75,7 +75,7 @@ class Test(unittest.TestCase):
 
 C++ 版本
 
-```
+```c++
 #define CATCH_CONFIG_MAIN
 #include <iostream>
 
@@ -93,7 +93,7 @@ TEST_CASE("foreach on list") {
 根据GDB是 `std::initializer_list<char const*>`。只有 begin，end，size 几个函数。实际上类似于 python 的 tuple。
 考虑到 python 的 list 类型是 mutable 的，所以更合适的实现是 std::vector。
 
-```
+```c++
 #define CATCH_CONFIG_MAIN
 #include <iostream>
 #include <vector>
