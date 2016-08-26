@@ -26,6 +26,8 @@ class FibTest(unittest.TestCase):
 
 C++ 版本
 
+引用的 catch.hpp 从这里下载 https://raw.githubusercontent.com/philsquared/Catch/master/single_include/catch.hpp
+
 ```
 #define CATCH_CONFIG_MAIN
 
