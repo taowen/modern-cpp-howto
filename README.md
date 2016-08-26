@@ -1,6 +1,3 @@
-# 这些用 C++ 如何实现
-
-
 ## basic language
 
 
