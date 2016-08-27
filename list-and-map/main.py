@@ -10,3 +10,13 @@ class Test(unittest.TestCase):
         colors = ['red', 'green', 'blue', 'yellow']
         for color in colors:
             print color
+
+    def test_foreach_reversed(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in reversed(colors):
+            print(color)
+
+    def test_foreach_with_index(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for i, color in enumerate(colors):
+            print(i, color)

@@ -1,6 +1,4 @@
-#define CATCH_CONFIG_MAIN
-
-#include "catch.hpp"
+#include <catch_with_main.hpp>
 
 unsigned int fib(unsigned int n) {
     if (n <= 1) {

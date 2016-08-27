@@ -12,7 +12,6 @@ Python 版本
 ```python
 import unittest
 
-
 class Test(unittest.TestCase):
     def test_foreach_on_lazy_range(self):
         for i in xrange(6):
@@ -21,42 +20,26 @@ class Test(unittest.TestCase):
 
 C++ 版本
 
-内置并没有xrange的实现，需要用boost
-
-```
-下载并解压缩 bootstrap
-./bootstrap.sh --prefix=/usr/local
-./b2 install toolset=clang cxxflags="-stdlib=libc++" linkflags="-stdlib=libc++"
-```
-
 ```c++
-#define CATCH_CONFIG_MAIN
-#include <boost/range/irange.hpp>
 #include <iostream>
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
 
-#include "catch.hpp"
+using namespace ranges;
 
 TEST_CASE("foreach on lazy range") {
-    for(auto x : boost::irange(0, 6)) {
+    for(const auto& x : view::ints(0, 6)) {
         std::cout << x * x << std::endl;
     }
 }
 ```
 
-更常规的写法，还是直接写普通的for循环
+注意到 `const auto&` 的写法，这个表示我对这个变量进行只读的使用。只要是能用const的地方就用const（
+http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#a-namerconst-immutableacon1-by-default-make-objects-immutable）。
+为什么还需要加上reference？因为非reference的版本默认的语义我要拥有这个变量（make a copy）。而在for循环下我们显然是只打算使用这个变量，
+而不是去拥有一份。为什么不用指针而用引用？因为指针可空，reference不可空。
 
-```c++
-#define CATCH_CONFIG_MAIN
-#include <iostream>
-
-#include "catch.hpp"
-
-TEST_CASE("foreach on lazy range in real world") {
-    for(auto x = 0; x < 6; x++) {
-        std::cout << x * x << std::endl;
-    }
-}
-```
+`view::ints` 是 range-v3 这个库提供的，作用等同于xrange。将来 range-v3 会成为标准库的一部分。
 
 ## foreach
 
@@ -64,7 +47,6 @@ Python 版本
 
 ```python
 import unittest
-
 
 class Test(unittest.TestCase):
     def test_foreach_on_list(self):
@@ -76,14 +58,14 @@ class Test(unittest.TestCase):
 C++ 版本
 
 ```c++
-#define CATCH_CONFIG_MAIN
 #include <iostream>
+#include <catch_with_main.hpp>
 
-#include "catch.hpp"
+using namespace ranges;
 
 TEST_CASE("foreach on list") {
     auto colors = {"red", "green", "blue", "yellow"};
-    for(auto color : colors) {
+    for(const auto& color : colors) {
         std::cout << color << std::endl;
     }
 }
@@ -94,16 +76,52 @@ TEST_CASE("foreach on list") {
 考虑到 python 的 list 类型是 mutable 的，所以更合适的实现是 std::vector。
 
 ```c++
-#define CATCH_CONFIG_MAIN
 #include <iostream>
 #include <vector>
+#include <catch_with_main.hpp>
 
-#include "catch.hpp"
+using namespace ranges;
 
 TEST_CASE("foreach on vector") {
     auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
-    for(auto color : colors) {
+    for(const auto& color : colors) {
         std::cout << color << std::endl;
     }
 }
 ```
+
+## foreach 倒序
+
+Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+
+    def test_foreach_reversed(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in reversed(colors):
+            print(color)
+```
+
+C++ 版本
+
+```c++
+#include <iostream>
+#include <vector>
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("foreach reversed") {
+    auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
+    for(const auto& color : colors | view::reverse) {
+        std::cout << color << std::endl;
+    }
+}
+```
+
+这里使用了 range-v3 的 view 组合，类似 unix pipe 的语法。
+

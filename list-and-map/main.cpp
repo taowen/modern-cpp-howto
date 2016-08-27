@@ -1,32 +1,40 @@
-#define CATCH_CONFIG_MAIN
-#include <boost/range/irange.hpp>
 #include <iostream>
 #include <vector>
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
 
-#include "catch.hpp"
+using namespace ranges;
 
 TEST_CASE("foreach on lazy range") {
-    for(auto x : boost::irange(0, 6)) {
-        std::cout << x * x << std::endl;
-    }
-}
-
-TEST_CASE("foreach on lazy range in real world") {
-    for(auto x = 0; x < 6; x++) {
+    for(const auto& x : view::ints(0, 6)) {
         std::cout << x * x << std::endl;
     }
 }
 
 TEST_CASE("foreach on list") {
     auto colors = {"red", "green", "blue", "yellow"};
-    for(auto color : colors) {
+    for(const auto& color : colors) {
         std::cout << color << std::endl;
     }
 }
 
 TEST_CASE("foreach on vector") {
     auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
-    for(auto color : colors) {
+    for(const auto& color : colors) {
         std::cout << color << std::endl;
+    }
+}
+
+TEST_CASE("foreach reversed") {
+    auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
+    for(const auto& color : colors | view::reverse) {
+        std::cout << color << std::endl;
+    }
+}
+
+TEST_CASE("foreach with index") {
+    auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
+    for(const auto& [i, color] : view::zip(view::iota(0), colors)) {
+        std::cout << i << " " << color << std::endl;
     }
 }
