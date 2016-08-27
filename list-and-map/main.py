@@ -42,3 +42,18 @@ class Test(unittest.TestCase):
         colors = ['red', 'green', 'blue', 'yellow']
         for color in sorted(colors, key=lambda e: len(e)):
             print(color)
+
+    def test_any_of(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print(any(color == 'green' for color in colors))
+
+    def test_list_comprehension(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print([len(color) for color in colors])
+
+    def test_slicing(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print(colors[1:2])
+        print(colors[:2])
+        print(colors[1:])
+        print(colors[:-1])

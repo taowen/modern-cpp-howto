@@ -63,10 +63,33 @@ TEST_CASE("sort reverse") {
 
 TEST_CASE("custom sort") {
     auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
-    colors |= action::sort(std::less<std::string>(), [](const auto&e) {
+    colors |= action::sort(std::less<int>(), [](const auto& e) {
         return e.size();
     });
     for(const auto& color : colors) {
         std::cout << color << std::endl;
     }
+}
+
+TEST_CASE("any of") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto result = any_of(colors, [](const auto& e) {
+        return e == "green";
+    });
+    std::cout << result << std::endl;
+}
+
+TEST_CASE("list comprehension") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto result = colors | view::transform([](const auto& e) { return e.size(); });
+    std::cout << result << std::endl;
+}
+
+TEST_CASE("slicing") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto colors_view = view::all(colors);
+    std::cout << colors_view[{1, 2}] << std::endl;
+    std::cout << colors_view[{0, 2}] << std::endl;
+    std::cout << colors_view[{1, end}] << std::endl;
+    std::cout << colors_view[{0, end-1}] << std::endl;
 }

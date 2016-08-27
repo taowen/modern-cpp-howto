@@ -281,3 +281,98 @@ TEST_CASE("custom sort") {
 ```
 
 `sort`的第一个参数是comparator，第二个参数是projector。这里我们使用了一个lambda表达式，从字符串上取得其长度值，用长度去排序。
+
+## any
+
+看看 list 里是否有任意一个元素满足条件。Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_any_of(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print(any(color == 'green' for color in colors))
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("any of") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto result = any_of(colors, [](const auto& e) {
+        return e == "green";
+    });
+    std::cout << result << std::endl;
+}
+```
+
+其中`any_of`来自于ranges这个namespace。作用和python的any稍微有点不一样。python的any不接受predicate作为参数，要求输入是boolean的
+列表，但是any_of支持predicate参数。
+
+## list comprehension
+
+Python 的看家本领
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_list_comprehension(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print([len(color) for color in colors])
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("list comprehension") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto result = colors | view::transform([](const auto& e) { return e.size(); });
+    std::cout << result << std::endl;
+}
+```
+
+## slicing
+
+Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_slicing(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print(colors[1:2])
+        print(colors[:2])
+        print(colors[1:])
+        print(colors[:-1])
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("slicing") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto colors_view = view::all(colors);
+    std::cout << colors_view[{1, 2}] << std::endl;
+    std::cout << colors_view[{0, 2}] << std::endl;
+    std::cout << colors_view[{1, end}] << std::endl;
+    std::cout << colors_view[{0, end-1}] << std::endl;
+}
+```
