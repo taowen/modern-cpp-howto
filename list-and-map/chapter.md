@@ -376,3 +376,118 @@ TEST_CASE("slicing") {
     std::cout << colors_view[{0, end-1}] << std::endl;
 }
 ```
+
+## foreach map keys
+
+Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_foreach_map_keys(self):
+        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
+        for k in d.keys():
+            if k.startswith('r'):
+                del d[k]
+        print(d.keys())
+```
+
+C++ 版本
+
+```c++
+#include <unordered_map>
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("foreach map keys") {
+    auto d = std::unordered_map<std::string, std::string>{
+            {"matthew", "blue"},
+            {"rachel", "green"},
+            {"raymond", "red"}
+    };
+    // 取出 keys，此处不是lazy操作
+    auto keys = std::vector<std::string>{d | view::keys};
+    for (const auto& k : keys) {
+        if (k.find("r") == 0) {
+            // 因为 keys 不是lazy操作，此处的删除不会影响遍历
+            d.erase(k);
+        }
+    }
+    std::cout << (d | view::keys) << std::endl;
+}
+```
+
+两个版本主要的区别是python的keys不是lazy的，而c++版本的keys是lazy的。为了支持循环中删除key，必须先 materialize。
+而上面的vector实例化就是为了这个目的。这个地方应该还有优化的空间。
+
+# foreach map key/value
+
+这个应该是最常用的map操作了吧。Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_foreach_key_value(self):
+        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
+        for k, v in d.iteritems():
+            print(k, v)
+```
+
+C++版本
+
+```c++
+#include <unordered_map>
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("foreach key/value") {
+    auto d = std::unordered_map<std::string, std::string>{
+            {"matthew", "blue"},
+            {"rachel", "green"},
+            {"raymond", "red"}
+    };
+    for (const auto& [k, v] : d) {
+        std::cout << k << " " << v << std::endl;
+    }
+}
+```
+
+## list 构造 map
+
+使用pair构造map, python版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_construct_map_by_paris(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print(dict((color, len(color)) for color in colors).values())
+```
+
+C++ 版本
+
+```c++
+#include <unordered_map>
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("construct map by pairs") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto d = std::unordered_map<std::string, int>{
+        colors | view::transform([](const auto& e) {
+            return std::make_pair(e, e.size());
+        })
+    };
+    std::cout << (d | view::values) << std::endl;
+}
+```
+

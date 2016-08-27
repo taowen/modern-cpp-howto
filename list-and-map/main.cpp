@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include <catch_with_main.hpp>
 #include <range/v3/all.hpp>
 
@@ -92,4 +94,42 @@ TEST_CASE("slicing") {
     std::cout << colors_view[{0, 2}] << std::endl;
     std::cout << colors_view[{1, end}] << std::endl;
     std::cout << colors_view[{0, end-1}] << std::endl;
+}
+
+TEST_CASE("foreach map keys") {
+    auto d = std::unordered_map<std::string, std::string>{
+            {"matthew", "blue"},
+            {"rachel", "green"},
+            {"raymond", "red"}
+    };
+    // 取出 keys，此处不是lazy操作
+    auto keys = std::vector<std::string>{d | view::keys};
+    for (const auto& k : keys) {
+        if (k.find("r") == 0) {
+            // 因为 keys 不是lazy操作，此处的删除不会影响遍历
+            d.erase(k);
+        }
+    }
+    std::cout << (d | view::keys) << std::endl;
+}
+
+TEST_CASE("foreach key/value") {
+    auto d = std::unordered_map<std::string, std::string>{
+            {"matthew", "blue"},
+            {"rachel", "green"},
+            {"raymond", "red"}
+    };
+    for (const auto& [k, v] : d) {
+        std::cout << k << " " << v << std::endl;
+    }
+}
+
+TEST_CASE("construct map by pairs") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    auto d = std::unordered_map<std::string, int>{
+        colors | view::transform([](const auto& e) {
+            return std::make_pair(e, e.size());
+        })
+    };
+    std::cout << (d | view::values) << std::endl;
 }

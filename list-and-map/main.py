@@ -57,3 +57,19 @@ class Test(unittest.TestCase):
         print(colors[:2])
         print(colors[1:])
         print(colors[:-1])
+
+    def test_foreach_map_keys(self):
+        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
+        for k in d.keys():
+            if k.startswith('r'):
+                del d[k]
+        print(d.keys())
+
+    def test_foreach_key_value(self):
+        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
+        for k, v in d.iteritems():
+            print(k, v)
+
+    def test_construct_map_by_paris(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        print(dict((color, len(color)) for color in colors).values())
