@@ -1,15 +1,16 @@
 import unittest
+import itertools
 
 
 class Test(unittest.TestCase):
     def test_foreach_on_lazy_range(self):
         for i in xrange(6):
-            print i ** 2
+            print(i ** 2)
 
     def test_foreach_on_list(self):
         colors = ['red', 'green', 'blue', 'yellow']
         for color in colors:
-            print color
+            print(color)
 
     def test_foreach_reversed(self):
         colors = ['red', 'green', 'blue', 'yellow']
@@ -20,3 +21,24 @@ class Test(unittest.TestCase):
         colors = ['red', 'green', 'blue', 'yellow']
         for i, color in enumerate(colors):
             print(i, color)
+
+    def test_zip(self):
+        names = ['raymond', 'rachel', 'matthew']
+        colors = ['red', 'green', 'blue', 'yellow']
+        for name, color in itertools.izip(names, colors):
+            print(name, color)
+
+    def test_sort(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in sorted(colors):
+            print(color)
+
+    def test_sort_reverse(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in sorted(colors, reverse=True):
+            print(color)
+
+    def test_custom_sort(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in sorted(colors, key=lambda e: len(e)):
+            print(color)

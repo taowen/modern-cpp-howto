@@ -21,7 +21,6 @@ class Test(unittest.TestCase):
 C++ 版本
 
 ```c++
-#include <iostream>
 #include <catch_with_main.hpp>
 #include <range/v3/all.hpp>
 
@@ -58,7 +57,6 @@ class Test(unittest.TestCase):
 C++ 版本
 
 ```c++
-#include <iostream>
 #include <catch_with_main.hpp>
 
 using namespace ranges;
@@ -72,18 +70,16 @@ TEST_CASE("foreach on list") {
 ```
 
 与python不同，c++没有所谓的默认的list类型。上面的写法是最简洁的写法。colors 变量的实际类型
-根据GDB是 `std::initializer_list<char const*>`。只有 begin，end，size 几个函数。实际上类似于 python 的 tuple。
+根据GDB是 `std::initializer_list<const char*>`。只有 begin，end，size 几个函数。实际上类似于 python 的 tuple。
 考虑到 python 的 list 类型是 mutable 的，所以更合适的实现是 std::vector。
 
 ```c++
-#include <iostream>
-#include <vector>
 #include <catch_with_main.hpp>
 
 using namespace ranges;
 
 TEST_CASE("foreach on vector") {
-    auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
+    auto colors = std::vector<const char*>{"red", "green", "blue", "yellow"};
     for(const auto& color : colors) {
         std::cout << color << std::endl;
     }
@@ -108,15 +104,13 @@ class Test(unittest.TestCase):
 C++ 版本
 
 ```c++
-#include <iostream>
-#include <vector>
 #include <catch_with_main.hpp>
 #include <range/v3/all.hpp>
 
 using namespace ranges;
 
 TEST_CASE("foreach reversed") {
-    auto colors = std::vector<char const*>{"red", "green", "blue", "yellow"};
+    auto colors = std::vector<const char*>{"red", "green", "blue", "yellow"};
     for(const auto& color : colors | view::reverse) {
         std::cout << color << std::endl;
     }
@@ -125,3 +119,165 @@ TEST_CASE("foreach reversed") {
 
 这里使用了 range-v3 的 view 组合，类似 unix pipe 的语法。
 
+## foreach 带下标
+
+Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_foreach_with_index(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for i, color in enumerate(colors):
+            print(i, color)
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("foreach with index") {
+    auto colors = std::vector<const char*>{"red", "green", "blue", "yellow"};
+    for(const auto& [i, color] : view::zip(view::iota(0), colors)) {
+        std::cout << i << " " << color << std::endl;
+    }
+}
+```
+
+`view::iota`这个的意思是产生一个从n开始的逐个加一的view，类似python里的generator。然后zip是把两个view逐个对应起来合并成一个pair的view。
+然后`const auto& [i, color]`是c++ 17的structured bindings的写法，和python解开tuple里的元素的做法是如出一辙的。
+
+## zip
+
+下面这个例子可以看得更清楚。 Python 版本
+
+```python
+import unittest
+import itertools
+
+class Test(unittest.TestCase):
+    def test_zip(self):
+        names = ['raymond', 'rachel', 'matthew']
+        colors = ['red', 'green', 'blue', 'yellow']
+        for name, color in itertools.izip(names, colors):
+            print(name, color)
+```
+
+izip返回的是generator。zip返回都是list。C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("zip") {
+    auto names = std::vector<const char*>{"raymond", "rachel", "matthew"};
+    auto colors = std::vector<const char*>{"red", "green", "blue", "yellow"};
+    for(const auto& [name, color] : view::zip(names, colors)) {
+        std::cout << name << " " << color << std::endl;
+    }
+}
+```
+
+## sorted
+
+Python 版本
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_sort(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in sorted(colors):
+            print(color)
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("sort") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    colors |= action::sort;
+    for(const auto& color : colors) {
+        std::cout << color << std::endl;
+    }
+}
+```
+
+这个例子里`const char*`换成了`std::string`，因为只有字符串类型才知道怎么比较，才能排序。
+`action::sort`与view不同，它返回的是具体的container，而不再是view了。
+
+如果要倒过来排序，再 python 中是这样的
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+    def test_sort_reverse(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in sorted(colors, reverse=True):
+            print(color)
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("sort reverse") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    colors |= action::sort(std::greater<std::string>());
+    for(const auto& color : colors) {
+        std::cout << color << std::endl;
+    }
+}
+```
+
+Python还支持指定属性去排序
+
+```python
+import unittest
+
+class Test(unittest.TestCase):
+
+    def test_custom_sort(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for color in sorted(colors, key=lambda e: len(e)):
+            print(color)
+```
+
+C++ 版本
+
+```c++
+#include <catch_with_main.hpp>
+#include <range/v3/all.hpp>
+
+using namespace ranges;
+
+TEST_CASE("custom sort") {
+    auto colors = std::vector<std::string>{"red", "green", "blue", "yellow"};
+    colors |= action::sort(std::less<std::string>(), [](const auto&e) {
+        return e.size();
+    });
+    for(const auto& color : colors) {
+        std::cout << color << std::endl;
+    }
+}
+```
+
+`sort`的第一个参数是comparator，第二个参数是projector。这里我们使用了一个lambda表达式，从字符串上取得其长度值，用长度去排序。
