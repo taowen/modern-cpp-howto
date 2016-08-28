@@ -35,8 +35,8 @@ clion 基本上可以有和 java 一样的IDE体验，包括 debugger 在内。�
 
 ```
 git clone https://github.com/llvm-mirror/llvm.git llvm-src
-git clone https://github.com/llvm-mirror/libcxxabi.git llvm-src/projects
-git clone https://github.com/llvm-mirror/libcxx.git llvm-src/projects
+git clone https://github.com/llvm-mirror/libcxxabi.git llvm-src/projects/libcxxabi
+git clone https://github.com/llvm-mirror/libcxx.git llvm-src/projects/libcxx
 CC=clang CXX=clang++ cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release llvm-src
 make cxx -j 8
 sudo make install-libcxx install-libcxxabi
