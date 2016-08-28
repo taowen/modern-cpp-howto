@@ -8,7 +8,14 @@
 对 python 这样的动态语言最直观的感受就是 list/map 两种数据结构打天下。php 和 lua 甚至把这两个都合并成一种数据结构了。
 毋庸置疑，学会如何使用 list 和 map 是基础中的基础。
 
-[for](#foreach-lazy)
+| | Python | C++ |
+| -- | -- | -- |
+| [for 循环](#foreach-lazy) | `for i in xrange(6)` | `for (auto i : view::ints(0, 6))` |
+| [foreach](#foreach) | `for color in colors` | `for (const auto& color : colors)` |
+| [foreach 倒序](#foreach-reversed) | `reversed(colors)` | `colors ` &#124; `view::reverse` |
+
+
+
 
 ## for 循环 {#foreach-lazy}
 
@@ -45,7 +52,7 @@ http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#a-namerconst-immutab
 
 `view::ints` 是 range-v3 这个库提供的，作用等同于xrange。将来 range-v3 会成为标准库的一部分。
 
-## foreach
+## foreach {#foreach}
 
 Python 版本
 
@@ -91,7 +98,7 @@ TEST_CASE("foreach on vector") {
 }
 ```
 
-## foreach 倒序
+## foreach 倒序 {#foreach-reversed}
 
 Python 版本
 
