@@ -3,7 +3,7 @@
 * [简介](README.md)
 * [单元测试](unit-testing/chapter.md)
 * [list 和 map](list-and-map/chapter.md)
-* collections.defaultdict
+* [value 还是 reference](value-or-reference/chapter.md)
 * golang slice
 * c++ pointer&reference ownership
 * golang style type alias

@@ -15,8 +15,6 @@
 | [foreach 倒序](#foreach-reversed) | `reversed(colors)` | `colors ` &#124; `view::reverse` |
 
 
-
-
 ## for 循环 {#foreach-lazy}
 
 Python 版本

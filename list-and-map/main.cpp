@@ -2,8 +2,10 @@
 
 #include <catch_with_main.hpp>
 #include <range/v3/all.hpp>
+#include <json.hpp>
 
 using namespace ranges;
+using json = nlohmann::json;
 
 TEST_CASE("foreach on lazy range") {
     for(const auto& x : view::ints(0, 6)) {
@@ -132,4 +134,12 @@ TEST_CASE("construct map by pairs") {
         })
     };
     std::cout << (d | view::values) << std::endl;
+}
+
+TEST_CASE("json literal") {
+    json obj {
+            {"int", 1},
+            {"string", {1, 2, 3}},
+    };
+    std::cout << obj << std::endl;
 }

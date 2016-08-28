@@ -22,7 +22,12 @@ set(SOURCE_FILES main.cpp)
 add_executable(unit-testing ${SOURCE_FILES})
 ```
 
-clion 基本上可以有和 java 一样的IDE体验，包括 debugger 在内。绝对值得拥有。
+clion 基本上可以有和 java 一样的IDE体验，包括 debugger 在内。绝对值得拥有。设置 clion 使用 clang
+
+```
+在 file -> settings -> cmake 下设置
+-D CMAKE_C_COMPILER=clang -D CMAKE_CXX_COMPILER=clang++
+```
 
 参考资料
 
