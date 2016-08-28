@@ -5,6 +5,7 @@
 * [Back to the Basics! Essentials of Modern C++ Style - Herb Sutter - CppCon 2014](https://github.com/CppCon/CppCon2014/blob/master/Presentations/Back%20to%20the%20Basics!%20Essentials%20of%20Modern%20C%2B%2B%20Style/Back%20to%20the%20Basics!%20Essentials%20of%20Modern%20C%2B%2B%20Style%20-%20Herb%20Sutter%20-%20CppCon%202014.pdf)
 * [Writing Good C++14 - Bjarne Stroustrup - CppCon 2015](https://github.com/CppCon/CppCon2015/blob/master/Keynotes/Writing%20Good%20C%2B%2B14/Writing%20Good%20C%2B%2B14%20-%20Bjarne%20Stroustrup%20-%20CppCon%202015.pdf)
 * [Writing Good C++14 By Default - Herb Sutter - CppCon 2015](https://github.com/CppCon/CppCon2015/blob/master/Keynotes/Writing%20Good%20C%2B%2B14%20By%20Default/Writing%20Good%20C%2B%2B14%20By%20Default%20-%20Herb%20Sutter%20-%20CppCon%202015.pdf)
+* [More C++ Idioms](https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms)
 
 java 程序员是幸福的，在 java 的世界里当设计一个 class，实例化一个 object 时需要考虑的东西远比 c++ 要小，所谓“心智负担”。作为一个 python
 程序员一直搞不懂什么时候使用什么 c++ 的语法特性。这个不仅仅是垃圾收集的问题，还要考虑到拷贝构造的成本等很多东西。我们把这些“心智负担”做一个
@@ -405,6 +406,92 @@ TEST_CASE("pass struct value") {
 
 python和java，全部都是拷贝指针的行为。
 c++全部是默认拷贝值。
+
+## copy v.s const
+
+在 value/entity/transient 的分类下，对于 entity 和 transient 两类对象我们基本上都不需要拷贝的语义。
+在go和php这样支持拷贝语义的语言中，我们是无法阻止拷贝的。但是C++可以，方法是把copy constructor关掉。
+参见 https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Non-copyable_Mixin 。
+
+那么对于value object来说，我们就一定使用拷贝么？在理想的世界里，value object全部都是immutable的。所有的传递 value object 都是拷贝，
+完全没有引用这样的东西。这样的设计是有其价值的。但是拷贝是有成本的，大型一点的immutable设计都需要有copy on write这样的优化，
+而不是无脑地eager copy。显然，c++ 并没有意图在这个方面提供太多的优化。
+
+更常见的 value object 设计是 mutable 的。但是允许只读的访问视图，这个就是 const 。
+它可以在不创建新的拷贝的情况下，保证对该变量的访问是只读的。
+
+综上，有这么几种class
+
+* transient，不支持 equals，不能拷贝
+* entity, id equals，不能拷贝
+* mutable value，支持 equals，可以拷贝
+* immutable value，支持 equals，可以拷贝，修改返回新对象
+
+在设计一个class的时候，思考其究竟应该属于哪一种。然后根据下面的样式仿照着来写，而不是使用默认的c++编译器的行为。
+java/python 默认支持equals，有时应该禁用。而c++默认支持拷贝构造，有时也应该禁用。
+语言的默认是不够的，默认行为应该根据不同的class而分为四种默认行为。
+
+### transient
+
+Python 版本
+
+```python
+# coding=utf-8
+import copy
+
+# 网络 socket 显然应该属于 transient object
+
+class MySocket(object):
+    def __eq__(self, other):
+        raise Exception('transient object does not support ==')
+
+    def __ne__(self, other):
+        raise Exception('transient object does not support !=')
+
+    def __hash__(self):
+        raise Exception('transient object does not support hash')
+
+    def __copy__(self):
+        raise Exception('transient object does not support shallow copy')
+
+    def __deepcopy__(self, memo):
+        raise Exception('transient object does not support deep copy')
+
+sock1 = MySocket()
+sock2 = MySocket()
+# print(sock1 == sock2) 会抛异常
+# print(sock1 != sock2) 会抛异常
+# print(sock1 <> sock2) 会抛异常
+# some_map = {sock1: None} 会抛异常
+# copy.copy(sock1) 会抛异常
+# copy.deepcopy(sock1) 会抛异常
+```
+
+C++ 版本
+
+```c++
+#include <unordered_map>
+#include <catch_with_main.hpp>
+
+class MySocket {
+public:
+    constexpr MySocket() = default;
+    ~MySocket() = default;
+
+protected:
+    MySocket( const MySocket& ) = delete; // copy constructor
+    MySocket& operator=( const MySocket& ) = delete; // assignment constructor
+};
+
+TEST_CASE("transient object") {
+    MySocket sock1, sock2;
+    // sock1 == sock2; 没有默认实现的 ==，无需禁用
+    // sock1 != sock2; 没有默认实现的 !=，无需禁用
+    // std::unordered_map<MySocket, int> some_map{}; 编译错误，MySocket没有实现std::hash
+    // auto sock3 = sock1; copy constructor 已经被禁用
+    // sock2 = sock1; assignment constructor 已经被禁用
+}
+```
 
 ## Copy or Not
 
