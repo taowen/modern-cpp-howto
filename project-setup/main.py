@@ -17,3 +17,6 @@ class FibTest(unittest.TestCase):
 
     def test_fib_5(self):
         self.assertEqual(5, fib(5))
+
+    def test_assert_list_equals(self):
+        self.assertListEqual([1, 2, 3], [1, 2, 4])

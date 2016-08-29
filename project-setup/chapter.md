@@ -1,7 +1,8 @@
-# 单元测试
+# 工程管理
 
 ## 开发环境
 
+TODO：try https://github.com/pfultz2/cget
 * 操作系统: ubuntu 14.04
 * 编译器 clang 4.0: http://apt.llvm.org/ 使用 c++ 17
 * cmake: sudo apt-get install cmake
@@ -98,4 +99,76 @@ TEST_CASE("fib 5") {
 }
 ```
 
+单元测试一个常见的烦恼是集合对象的对比。在 python 中我们会写
+
+```python
+import unittest
+
+class FibTest(unittest.TestCase):
+    def test_assert_list_equals(self):
+        self.assertListEqual([1, 2, 3], [1, 2, 4])
+```
+
+C++ 版本
+
+```c++
+#include <vector>
+#include <catch_with_main.hpp>
+
+TEST_CASE("assert list equals") {
+    auto v1 = std::vector<int>{1, 2, 3};
+    auto v2 = std::vector<int>{1, 2, 4};
+    REQUIRE(v1 == v2);
+}
+```
+
+打印的错误消息还是很清楚的
+
+```
+  REQUIRE( v1 == v2 )
+with expansion:
+  { 1, 2, 3 } == { 1, 2, 4 }
+```
+
+自定义类型也是支持的
+
+```c++
+#include <catch_with_main.hpp>
+
+class MyStruct {
+public:
+    int field;
+    MyStruct(int field) {
+        this->field = field;
+    }
+};
+
+bool operator == (const MyStruct& left, const MyStruct& right) {
+    return left.field == right.field;
+}
+
+std::ostream& operator << ( std::ostream& os, const MyStruct& value ) {
+    os << "MyStruct{ " << value.field << " }";
+    return os;
+}
+
+TEST_CASE("assert struct equals") {
+    auto v1 = MyStruct{1};
+    auto v2 = MyStruct{2};
+    REQUIRE(v1 == v2);
+}
+```
+
+提示的出错消息是
+
+```
+  REQUIRE( v1 == v2 )
+with expansion:
+  MyStruct{ 1 } == MyStruct{ 2 }
+```
+
 更详细的单元测试框架用法，参见 http://catch-lib.net
+
+## 多模块 cmake 和 clang modules
+
+TODO

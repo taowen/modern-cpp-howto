@@ -21,7 +21,7 @@ java 程序员是幸福的，在 java 的世界里当设计一个 class，实例
 
 ## 对象自身的语义
 
-参见 http://martinfowler.com/bliki/EvansClassification.html。java开发者，习惯把对象分为三类：
+参见 http://martinfowler.com/bliki/EvansClassification.html 。不精确的企业应用开发者，把对象分为三类：
 
 * value object，值对象
 * entity object，实体对象
@@ -480,7 +480,7 @@ public:
 
 protected:
     MySocket( const MySocket& ) = delete; // copy constructor
-    MySocket& operator=( const MySocket& ) = delete; // assignment constructor
+    MySocket& operator=( const MySocket& ) = delete; // copy assignment
 };
 
 TEST_CASE("transient object") {
@@ -489,10 +489,14 @@ TEST_CASE("transient object") {
     // sock1 != sock2; 没有默认实现的 !=，无需禁用
     // std::unordered_map<MySocket, int> some_map{}; 编译错误，MySocket没有实现std::hash
     // auto sock3 = sock1; copy constructor 已经被禁用
-    // sock2 = sock1; assignment constructor 已经被禁用
+    // sock2 = sock1; copy assignment 已经被禁用
 }
 ```
 
-## Copy or Not
+## Move
 
-何时使用拷贝，何时使用引用，何时使用指针？
+TODO：什么是move
+
+## Summary
+
+TODO：给出不同场景下，用什么样的引用方式
