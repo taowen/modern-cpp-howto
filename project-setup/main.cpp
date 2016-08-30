@@ -3,7 +3,9 @@
 #include <iostream>
 #include <catch_with_main.hpp>
 #include <catch_ext.hpp>
+#include <range/v3/all.hpp>
 
+using namespace ranges;
 using namespace std;
 
 unsigned int fib(unsigned int n) {
@@ -45,9 +47,15 @@ TEST_CASE("assert pair equals") {
 }
 
 TEST_CASE("assert tuple equals") {
-    auto v1 = make_tuple("1", 2, 3);
-    auto v2 = make_tuple("1", 3, 4);
+    auto v1 = ranges::make_tuple("1", 2, 3);
+    auto v2 = ranges::make_tuple("1", 3, 4);
     REQUIRE(v1 == v2);
+}
+
+TEST_CASE("assert view equals") {
+    auto v1 = vector<int>{1, 2, 3};
+    auto v2 = vector<int>{1, 2, 4};
+    REQUIRE((v1 | view::all | mcht::as_vector<int>()) == (v2 | view::all | mcht::as_vector<int>()));
 }
 
 class MyStruct {

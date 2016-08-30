@@ -16,3 +16,4 @@ _book
 *.pdf
 .idea
 *.iml
+CMakeLists.txt.user

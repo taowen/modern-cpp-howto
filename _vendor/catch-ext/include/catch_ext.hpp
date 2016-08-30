@@ -1,5 +1,6 @@
 #include <string>
 #include <unordered_map>
+#include <range/v3/all.hpp>
 
 namespace Catch {
 
@@ -36,6 +37,39 @@ namespace Catch {
     template<typename key_type, typename value_type> struct StringMaker<pair<key_type, value_type>> {
         static std::string convert(pair<key_type, value_type> const &value) {
             return "{ " + describe(value.first) + ", " + describe(value.second) + " }";
+        }
+    };
+}
+
+namespace mcht {
+    using namespace std;
+    using namespace ranges;
+    template<typename E>
+    struct as_vector : pipeable<as_vector<E>>
+    {
+    private:
+
+        /// If it's a view already, pass it though.
+        template<typename T>
+        static vector<E> from_range(T && t, concepts::View*)
+        {
+            return t;
+        }
+
+    public:
+        template<typename T,
+            CONCEPT_REQUIRES_(Range<T>())>
+        auto operator()(T && t) const ->
+            decltype(as_vector::from_range(std::forward<T>(t), view_concept<T>()))
+        {
+            return as_vector::from_range(std::forward<T>(t), view_concept<T>());
+        }
+
+        template<typename T,
+            CONCEPT_REQUIRES_(Range<T &>())>
+        ranges::reference_wrapper<T> operator()(std::reference_wrapper<T> ref) const
+        {
+            return ranges::ref(ref.get());
         }
     };
 }
