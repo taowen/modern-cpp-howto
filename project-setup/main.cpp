@@ -1,5 +1,10 @@
 #include <vector>
+#include <unordered_map>
+#include <iostream>
 #include <catch_with_main.hpp>
+#include <catch_ext.hpp>
+
+using namespace std;
 
 unsigned int fib(unsigned int n) {
     if (n <= 1) {
@@ -22,8 +27,26 @@ TEST_CASE("fib 5") {
 }
 
 TEST_CASE("assert list equals") {
-    auto v1 = std::vector<int>{1, 2, 3};
-    auto v2 = std::vector<int>{1, 2, 4};
+    auto v1 = vector<int>{1, 2, 3};
+    auto v2 = vector<int>{1, 2, 4};
+    REQUIRE(v1 == v2);
+}
+
+TEST_CASE("assert map equals") {
+    auto v1 = unordered_map<string, int>{{"1", 2}, {"3", 4}};
+    auto v2 = unordered_map<string, int>{{"3", 4}, {"1", 1}};
+    REQUIRE(v1 == v2);
+}
+
+TEST_CASE("assert pair equals") {
+    auto v1 = make_pair("1", 2);
+    auto v2 = make_pair("1", 3);
+    REQUIRE(v1 == v2);
+}
+
+TEST_CASE("assert tuple equals") {
+    auto v1 = make_tuple("1", 2, 3);
+    auto v2 = make_tuple("1", 3, 4);
     REQUIRE(v1 == v2);
 }
 
@@ -39,7 +62,7 @@ bool operator == (const MyStruct& left, const MyStruct& right) {
     return left.field == right.field;
 }
 
-std::ostream& operator << ( std::ostream& os, const MyStruct& value ) {
+ostream& operator << ( ostream& os, const MyStruct& value ) {
     os << "MyStruct{ " << value.field << " }";
     return os;
 }
