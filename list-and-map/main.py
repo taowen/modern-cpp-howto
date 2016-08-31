@@ -12,11 +12,6 @@ class Test(unittest.TestCase):
         for color in colors:
             print(color)
 
-    def test_foreach_with_index(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        for i, color in enumerate(colors):
-            print(i, color)
-
     def test_reversed(self):
         colors = ['red', 'green', 'blue', 'yellow']
         self.assertListEqual(['yellow', 'blue', 'green', 'red'], list(reversed(colors)))
@@ -24,13 +19,25 @@ class Test(unittest.TestCase):
     def test_zip(self):
         names = ['raymond', 'rachel', 'matthew']
         colors = ['red', 'green', 'blue', 'yellow']
-        for name, color in itertools.izip(names, colors):
-            print(name, color)
+        self.assertListEqual([
+            ('raymond', 'red'),
+            ('rachel', 'green'),
+            ('matthew', 'blue')
+        ], zip(names, colors))
+
+    def test_foreach_with_index(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        for i, color in enumerate(colors):
+            print(i, color)
+
+    def test_foreach_map(self):
+        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
+        for k, v in d.iteritems():
+            print(k, v)
 
     def test_sort(self):
         colors = ['red', 'green', 'blue', 'yellow']
-        for color in sorted(colors):
-            print(color)
+        self.assertListEqual(['blue', 'green', 'red', 'yellow'], sorted(colors))
 
     def test_sort_reverse(self):
         colors = ['red', 'green', 'blue', 'yellow']
@@ -63,11 +70,6 @@ class Test(unittest.TestCase):
             if k.startswith('r'):
                 del d[k]
         print(d.keys())
-
-    def test_foreach_key_value(self):
-        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
-        for k, v in d.iteritems():
-            print(k, v)
 
     def test_construct_map_by_paris(self):
         colors = ['red', 'green', 'blue', 'yellow']

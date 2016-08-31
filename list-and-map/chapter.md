@@ -13,6 +13,9 @@
 | [for 循环](#foreach-lazy) | `for i in xrange(6)` | `for (auto i : view::ints(0, 6))` |
 | [foreach](#foreach) | `for color in colors` | `for (const auto& color : colors)` |
 | [倒序](#reverse) | `reversed(colors)` | `colors ` &#124; `view::reverse` |
+| [zip](#zip) | `zip(names, colors)` | `view::zip(names, colors)` |
+| [foreach 带下标](#enumerate) | `for i, color in enumerate(colors)` | `for(const auto& [i, color] : view::zip(view::iota(0), colors))` |
+| [foreach map](#foreach-map) | `for k, v in d.iteritems()` | `for (const auto& [k, v] : d)` |
 
 
 ## for 循环 {#foreach-lazy}
@@ -77,31 +80,6 @@ TEST_CASE("foreach on vector") {
 }
 ```
 
-## foreach 带下标
-
-Python 版本
-
-```python
-def test_foreach_with_index(self):
-    colors = ['red', 'green', 'blue', 'yellow']
-    for i, color in enumerate(colors):
-        print(i, color)
-```
-
-C++ 版本
-
-```c++
-TEST_CASE("foreach with index") {
-    auto colors = vector<const char*>{"red", "green", "blue", "yellow"};
-    for(const auto& [i, color] : view::zip(view::iota(0), colors)) {
-        cout << i << " " << color << endl;
-    }
-}
-```
-
-`view::iota`这个的意思是产生一个从n开始的逐个加一的view，类似python里的generator。然后zip是把两个view逐个对应起来合并成一个pair的view。
-然后`const auto& [i, color]`是c++ 17的structured bindings的写法，和python解开tuple里的元素的做法是如出一辙的。
-
 
 ## 倒序 {#reverse}
 
@@ -126,35 +104,86 @@ TEST_CASE("reverse") {
 
 这里使用了 range-v3 的 view 组合，类似 unix pipe 的语法。
 
-## zip
+## zip {#zip}
 
 下面这个例子可以看得更清楚。 Python 版本
 
 ```python
-import unittest
-import itertools
-
-class Test(unittest.TestCase):
-    def test_zip(self):
-        names = ['raymond', 'rachel', 'matthew']
-        colors = ['red', 'green', 'blue', 'yellow']
-        for name, color in itertools.izip(names, colors):
-            print(name, color)
+def test_zip(self):
+    names = ['raymond', 'rachel', 'matthew']
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertListEqual([
+        ('raymond', 'red'),
+        ('rachel', 'green'),
+        ('matthew', 'blue')
+    ], zip(names, colors))
 ```
 
-izip返回的是generator。zip返回都是list。C++ 版本
+C++ 版本
 
 ```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
 TEST_CASE("zip") {
-    auto names = vector<const char*>{"raymond", "rachel", "matthew"};
-    auto colors = vector<const char*>{"red", "green", "blue", "yellow"};
-    for(const auto& [name, color] : view::zip(names, colors)) {
+    auto names = vector<string>{"raymond", "rachel", "matthew"};
+    auto colors = vector<string>{"red", "green", "blue", "yellow"};
+    auto zipped = view::zip(names, colors);
+    CHECK((vector<pair<string, string>>{
+               {"raymond", "red"}, {"rachel", "green"}, {"matthew", "blue"}
+           })
+          ==
+          (zipped | to_vector));
+    for(const auto& [name, color] : zipped) {
         cout << name << " " << color << endl;
+    }
+}
+```
+
+## foreach 带下标 {#enumerate}
+
+Python 版本
+
+```python
+def test_foreach_with_index(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    for i, color in enumerate(colors):
+        print(i, color)
+```
+
+C++ 版本
+
+```c++
+TEST_CASE("foreach with index") {
+    auto colors = vector<string>{"red", "green", "blue", "yellow"};
+    for(const auto& [i, color] : view::zip(view::iota(0), colors)) {
+        cout << i << " " << color << endl;
+    }
+}
+```
+
+`view::iota`这个的意思是产生一个从n开始的逐个加一的view，类似python里的generator。然后zip是把两个view逐个对应起来合并成一个pair的view。
+然后`const auto& [i, color]`是c++ 17的structured bindings的写法，和python解开tuple里的元素的做法是如出一辙的。
+
+# foreach map {#foreach-map}
+
+这个应该是最常用的map操作了吧。Python 版本
+
+```python
+def test_foreach_map(self):
+    d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
+    for k, v in d.iteritems():
+        print(k, v)
+```
+
+C++版本
+
+```c++
+TEST_CASE("foreach map") {
+    auto d = unordered_map<string, string>{
+            {"matthew", "blue"},
+            {"rachel", "green"},
+            {"raymond", "red"}
+    };
+    for (const auto& [k, v] : d) {
+        cout << k << " " << v << endl;
     }
 }
 ```
@@ -164,33 +193,23 @@ TEST_CASE("zip") {
 Python 版本
 
 ```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_sort(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        for color in sorted(colors):
-            print(color)
+def test_sort(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertListEqual(['blue', 'green', 'red', 'yellow'], sorted(colors))
 ```
 
 C++ 版本
 
 ```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
 TEST_CASE("sort") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    colors |= action::sort;
-    for(const auto& color : colors) {
-        cout << color << endl;
-    }
+    auto sorted = action::sort(colors);
+    CHECK((vector<string>{"blue", "green", "red", "yellow"})
+          ==
+          (sorted | to_vector));
 }
 ```
 
-这个例子里`const char*`换成了`string`，因为只有字符串类型才知道怎么比较，才能排序。
 `action::sort`与view不同，它返回的是具体的container，而不再是view了。
 
 如果要倒过来排序，再 python 中是这样的
@@ -396,41 +415,6 @@ TEST_CASE("foreach map keys") {
 
 两个版本主要的区别是python的keys不是lazy的，而c++版本的keys是lazy的。为了支持循环中删除key，必须先 materialize。
 而上面的vector实例化就是为了这个目的。这个地方应该还有优化的空间。
-
-# foreach map key/value
-
-这个应该是最常用的map操作了吧。Python 版本
-
-```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_foreach_key_value(self):
-        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
-        for k, v in d.iteritems():
-            print(k, v)
-```
-
-C++版本
-
-```c++
-#include <unordered_map>
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
-TEST_CASE("foreach key/value") {
-    auto d = unordered_map<string, string>{
-            {"matthew", "blue"},
-            {"rachel", "green"},
-            {"raymond", "red"}
-    };
-    for (const auto& [k, v] : d) {
-        cout << k << " " << v << endl;
-    }
-}
-```
 
 ## list 构造 map
 

@@ -17,3 +17,4 @@ _book
 .idea
 *.iml
 CMakeLists.txt.user
+build
