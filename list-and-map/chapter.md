@@ -18,9 +18,7 @@
 | [foreach map](#foreach-map) | `for k, v in d.iteritems()` | `for (const auto& [k, v] : d)` |
 | [排序](#sort) | `sorted(colors)` | `action::sort(colors)` |
 | [倒序排序](#sort-reverse) | `sorted(colors, reverse=True)` | `action::sort(colors, greater<string>())` |
-| [按自定义属性排序](#sort-by-lambda) | `sorted(colors, key=lambda e: len(e))` | ```action::sort(colors, less<int>(), [](const auto& e) {
-                                                                               return e.size();
-                                                                           })``` |
+| [按自定义属性排序](#sort-by-lambda) | `sorted(colors, key=lambda e: len(e))` | ```action::sort(colors, less<int>(), [](const auto& e) { return e.size(); })``` |
 
 
 
