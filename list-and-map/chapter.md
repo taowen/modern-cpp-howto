@@ -19,8 +19,10 @@
 | [排序](#sort) | `sorted(colors)` | `action::sort(colors)` |
 | [倒序排序](#sort-reverse) | `sorted(colors, reverse=True)` | `action::sort(colors, greater<string>())` |
 | [按自定义属性排序](#sort-by-lambda) | `sorted(colors, key=lambda e: len(e))` | ```action::sort(colors, less<int>(), [](const auto& e) { return e.size(); })``` |
-
-
+| [list comprehension](#list-comprehension) | `[len(color) for color in colors]` | `colors` &#124; `view::transform([](const auto& e) { return e.size(); })` |
+| [any](#any) | `any(color == 'green' for color in colors)` | `ranges::any_of(colors, [](const auto& e) { return e == "green"; })` |
+| [slicing](#slicing) | `colors[:-1]` | `colors_view[{0, ranges::end-1}]` |
+| [list 构造 map](#create-map) | `dict((color, len(color)) for color in colors)` | `unordered_map<string, int>{ colors` &#124; `view::transform([](const auto& e) { return make_pair(e, e.size()); }) }`|
 
 ## for 循环 {#foreach-lazy}
 
@@ -264,169 +266,105 @@ TEST_CASE("sort by lambda") {
 
 `sort`的第一个参数是comparator，第二个参数是projector。这里我们使用了一个lambda表达式，从字符串上取得其长度值，用长度去排序。
 
-## any
+## list comprehension {#list-comprehension}
 
-看看 list 里是否有任意一个元素满足条件。Python 版本
+Python 的看家本领
 
 ```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_any_of(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        print(any(color == 'green' for color in colors))
+def test_list_comprehension(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertListEqual([3, 5, 4, 6], [len(color) for color in colors])
 ```
 
 C++ 版本
 
 ```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
+TEST_CASE("list comprehension") {
+    auto colors = vector<string>{"red", "green", "blue", "yellow"};
+    auto actual = vector<int>{
+        colors | view::transform([](const auto& e) { return e.size(); })
+    };
+    CHECK((vector<int>{3, 5, 4, 6}) == actual);
+}
+```
 
-using namespace ranges;
+## any {#any}
 
+看看 list 里是否有任意一个元素满足条件。Python 版本
+
+```python
+def test_any_of(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertTrue(any(color == 'green' for color in colors))
+```
+
+C++ 版本
+
+```c++
 TEST_CASE("any of") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    auto result = any_of(colors, [](const auto& e) {
+    CHECK(ranges::any_of(colors, [](const auto& e) {
         return e == "green";
-    });
-    cout << result << endl;
+    }));
 }
 ```
 
 其中`any_of`来自于ranges这个namespace。作用和python的any稍微有点不一样。python的any不接受predicate作为参数，要求输入是boolean的
 列表，但是any_of支持predicate参数。
 
-## list comprehension
 
-Python 的看家本领
-
-```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_list_comprehension(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        print([len(color) for color in colors])
-```
-
-C++ 版本
-
-```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
-TEST_CASE("list comprehension") {
-    auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    auto result = colors | view::transform([](const auto& e) { return e.size(); });
-    cout << result << endl;
-}
-```
-
-## slicing
+## slicing {#slicing}
 
 Python 版本
 
 ```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_slicing(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        print(colors[1:2])
-        print(colors[:2])
-        print(colors[1:])
-        print(colors[:-1])
+def test_slicing(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertListEqual(['green'], colors[1:2])
+    self.assertListEqual(['red', 'green'], colors[:2])
+    self.assertListEqual(['green', 'blue', 'yellow'], colors[1:])
+    self.assertListEqual(['red', 'green', 'blue', 'yellow'], colors[:-1])
 ```
 
 C++ 版本
 
 ```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
 TEST_CASE("slicing") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    auto colors_view = view::all(colors);
-    cout << colors_view[{1, 2}] << endl;
-    cout << colors_view[{0, 2}] << endl;
-    cout << colors_view[{1, end}] << endl;
-    cout << colors_view[{0, end-1}] << endl;
+    auto colors_view = colors | view::all;
+    CHECK((vector<string>{"green"})
+          ==
+          (colors_view[{1, 2}] | to_vector));
+    CHECK((vector<string>{"red", "green"})
+          ==
+          (colors_view[{0, 2}] | to_vector));
+    CHECK((vector<string>{"green", "blue", "yellow"})
+          ==
+          (colors_view[{1, ranges::end}] | to_vector));
+    CHECK((vector<string>{"red", "green", "blue"})
+          ==
+          (colors_view[{0, ranges::end-1}] | to_vector));
 }
 ```
 
-## foreach map keys
-
-Python 版本
-
-```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_foreach_map_keys(self):
-        d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
-        for k in d.keys():
-            if k.startswith('r'):
-                del d[k]
-        print(d.keys())
-```
-
-C++ 版本
-
-```c++
-#include <unordered_map>
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
-TEST_CASE("foreach map keys") {
-    auto d = unordered_map<string, string>{
-            {"matthew", "blue"},
-            {"rachel", "green"},
-            {"raymond", "red"}
-    };
-    // 取出 keys，此处不是lazy操作
-    auto keys = vector<string>{d | view::keys};
-    for (const auto& k : keys) {
-        if (k.find("r") == 0) {
-            // 因为 keys 不是lazy操作，此处的删除不会影响遍历
-            d.erase(k);
-        }
-    }
-    cout << (d | view::keys) << endl;
-}
-```
-
-两个版本主要的区别是python的keys不是lazy的，而c++版本的keys是lazy的。为了支持循环中删除key，必须先 materialize。
-而上面的vector实例化就是为了这个目的。这个地方应该还有优化的空间。
-
-## list 构造 map
+## list 构造 map {#create-map}
 
 使用pair构造map, python版本
 
 ```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_construct_map_by_paris(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        print(dict((color, len(color)) for color in colors).values())
+def test_construct_map_by_paris(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertDictEqual({
+        'red': 3,
+        'green': 5,
+        'blue': 4,
+        'yellow': 6
+    }, dict((color, len(color)) for color in colors))
 ```
 
 C++ 版本
 
 ```c++
-#include <unordered_map>
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
 TEST_CASE("construct map by pairs") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
     auto d = unordered_map<string, int>{
@@ -434,7 +372,12 @@ TEST_CASE("construct map by pairs") {
             return make_pair(e, e.size());
         })
     };
-    cout << (d | view::values) << endl;
+    CHECK((unordered_map<string, int>{
+                    {"red", 3},
+                    {"green", 5},
+                    {"yellow", 6},
+                    {"blue", 4}
+        }) == d);
 }
 ```
 

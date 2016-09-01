@@ -47,20 +47,20 @@ class Test(unittest.TestCase):
         colors = ['red', 'green', 'blue', 'yellow']
         self.assertListEqual(['red', 'blue', 'green', 'yellow'], sorted(colors, key=lambda e: len(e)))
 
-    def test_any_of(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        print(any(color == 'green' for color in colors))
-
     def test_list_comprehension(self):
         colors = ['red', 'green', 'blue', 'yellow']
-        print([len(color) for color in colors])
+        self.assertListEqual([3, 5, 4, 6], [len(color) for color in colors])
+
+    def test_any_of(self):
+        colors = ['red', 'green', 'blue', 'yellow']
+        self.assertTrue(any(color == 'green' for color in colors))
 
     def test_slicing(self):
         colors = ['red', 'green', 'blue', 'yellow']
-        print(colors[1:2])
-        print(colors[:2])
-        print(colors[1:])
-        print(colors[:-1])
+        self.assertListEqual(['green'], colors[1:2])
+        self.assertListEqual(['red', 'green'], colors[:2])
+        self.assertListEqual(['green', 'blue', 'yellow'], colors[1:])
+        self.assertListEqual(['red', 'green', 'blue', 'yellow'], colors[:-1])
 
     def test_foreach_map_keys(self):
         d = {'matthew': 'blue', 'rachel': 'green', 'raymond': 'red'}
@@ -71,4 +71,9 @@ class Test(unittest.TestCase):
 
     def test_construct_map_by_paris(self):
         colors = ['red', 'green', 'blue', 'yellow']
-        print(dict((color, len(color)) for color in colors).values())
+        self.assertDictEqual({
+            'red': 3,
+            'green': 5,
+            'blue': 4,
+            'yellow': 6
+        }, dict((color, len(color)) for color in colors))

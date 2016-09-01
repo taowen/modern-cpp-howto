@@ -96,19 +96,19 @@ TEST_CASE("sort by lambda") {
           (sorted | to_vector));
 }
 
-TEST_CASE("any of") {
-    auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    CHECK(ranges::any_of(colors, [](const auto& e) {
-        return e == "green";
-    }));
-}
-
 TEST_CASE("list comprehension") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
     auto actual = vector<int>{
         colors | view::transform([](const auto& e) { return e.size(); })
     };
     CHECK((vector<int>{3, 5, 4, 6}) == actual);
+}
+
+TEST_CASE("any of") {
+    auto colors = vector<string>{"red", "green", "blue", "yellow"};
+    CHECK(ranges::any_of(colors, [](const auto& e) {
+        return e == "green";
+    }));
 }
 
 TEST_CASE("slicing") {
