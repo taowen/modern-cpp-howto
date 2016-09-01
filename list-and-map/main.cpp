@@ -86,7 +86,7 @@ TEST_CASE("sort reverse") {
           (sorted | to_vector));
 }
 
-TEST_CASE("custom sort") {
+TEST_CASE("sort by lambda") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
     auto sorted = action::sort(colors, less<int>(), [](const auto& e) {
         return e.size();

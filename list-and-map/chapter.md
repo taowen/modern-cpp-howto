@@ -16,6 +16,12 @@
 | [zip](#zip) | `zip(names, colors)` | `view::zip(names, colors)` |
 | [foreach 带下标](#enumerate) | `for i, color in enumerate(colors)` | `for(const auto& [i, color] : view::zip(view::iota(0), colors))` |
 | [foreach map](#foreach-map) | `for k, v in d.iteritems()` | `for (const auto& [k, v] : d)` |
+| [排序](#sort) | `sorted(colors)` | `action::sort(colors)` |
+| [倒序排序](#sort-reverse) | `sorted(colors, reverse=True)` | `action::sort(colors, greater<string>())` |
+| [按自定义属性排序](#sort-by-lambda) | `sorted(colors, key=lambda e: len(e))` | ```action::sort(colors, less<int>(), [](const auto& e) {
+                                                                               return e.size();
+                                                                           })``` |
+
 
 
 ## for 循环 {#foreach-lazy}
@@ -188,7 +194,7 @@ TEST_CASE("foreach map") {
 }
 ```
 
-## sorted
+## 排序 {#sort}
 
 Python 版本
 
@@ -212,64 +218,49 @@ TEST_CASE("sort") {
 
 `action::sort`与view不同，它返回的是具体的container，而不再是view了。
 
+## 倒序排序 {#sort-reverse}
+
 如果要倒过来排序，再 python 中是这样的
 
 ```python
-import unittest
-
-class Test(unittest.TestCase):
-    def test_sort_reverse(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        for color in sorted(colors, reverse=True):
-            print(color)
+def test_sort_reverse(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertListEqual(['yellow', 'red', 'green', 'blue'], sorted(colors, reverse=True))
 ```
 
 C++ 版本
 
 ```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
 TEST_CASE("sort reverse") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    colors |= action::sort(greater<string>());
-    for(const auto& color : colors) {
-        cout << color << endl;
-    }
+    auto sorted = action::sort(colors, greater<string>());
+    CHECK((vector<string>{"yellow", "red", "green", "blue"})
+          ==
+          (sorted | to_vector));
 }
 ```
+
+## 按自定义属性排序 {#sort-by-lambda}
 
 Python还支持指定属性去排序
 
 ```python
-import unittest
-
-class Test(unittest.TestCase):
-
-    def test_custom_sort(self):
-        colors = ['red', 'green', 'blue', 'yellow']
-        for color in sorted(colors, key=lambda e: len(e)):
-            print(color)
+def test_sort_by_lambda(self):
+    colors = ['red', 'green', 'blue', 'yellow']
+    self.assertListEqual(['red', 'blue', 'green', 'yellow'], sorted(colors, key=lambda e: len(e)))
 ```
 
 C++ 版本
 
 ```c++
-#include <catch_with_main.hpp>
-#include <range/v3/all.hpp>
-
-using namespace ranges;
-
-TEST_CASE("custom sort") {
+TEST_CASE("sort by lambda") {
     auto colors = vector<string>{"red", "green", "blue", "yellow"};
-    colors |= action::sort(less<string>(), [](const auto&e) {
+    auto sorted = action::sort(colors, less<int>(), [](const auto& e) {
         return e.size();
     });
-    for(const auto& color : colors) {
-        cout << color << endl;
-    }
+    CHECK((vector<string>{"red", "blue", "green", "yellow"})
+          ==
+          (sorted | to_vector));
 }
 ```
 

@@ -41,13 +41,11 @@ class Test(unittest.TestCase):
 
     def test_sort_reverse(self):
         colors = ['red', 'green', 'blue', 'yellow']
-        for color in sorted(colors, reverse=True):
-            print(color)
+        self.assertListEqual(['yellow', 'red', 'green', 'blue'], sorted(colors, reverse=True))
 
-    def test_custom_sort(self):
+    def test_sort_by_lambda(self):
         colors = ['red', 'green', 'blue', 'yellow']
-        for color in sorted(colors, key=lambda e: len(e)):
-            print(color)
+        self.assertListEqual(['red', 'blue', 'green', 'yellow'], sorted(colors, key=lambda e: len(e)))
 
     def test_any_of(self):
         colors = ['red', 'green', 'blue', 'yellow']
