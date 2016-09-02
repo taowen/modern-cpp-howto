@@ -2,7 +2,6 @@
 
 ## 开发环境
 
-TODO：try https://github.com/pfultz2/cget
 * 操作系统: ubuntu 14.04
 * 编译器 clang 4.0: http://apt.llvm.org/ 使用 c++ 17
 * cmake: sudo apt-get install cmake
@@ -169,6 +168,32 @@ with expansion:
 
 更详细的单元测试框架用法，参见 http://catch-lib.net
 
-## 多模块 cmake 和 clang modules
+## clang modules
 
-TODO
+c++一个很大的烦恼是编译速度非常慢。其中一个重要原因是因为头文件不能作为模块化独立处理，而是要重复地被包含。clang modules提供了一种机制把一组
+头文件打包成一个module，独立进行解析并保留为pcm文件。然后编译时遇到include就只需要把预编译好的pcm文件包含进去就行了。
+
+比如我们有一个range-v3的lib是头文件提供的。它的文件结构如下
+```
+_vendor/range-v3/
+├── include
+│   ├── meta
+│   │   ├── meta_fwd.hpp
+│   │   └── meta.hpp
+│   ├── module.modulemap
+│   └── range
+│       └── v3
+└── update.py
+```
+
+提供的module.modulemap就把这个目录下的头文件都打包成一个module了。modulemap的内容非常简单
+
+```
+$ cat _vendor/range-v3/include/module.modulemap
+module range_v3 {
+    umbrella "."
+    export *
+}
+```
+在编译的时候加上一些编译选项 `-fmodules` 就可以启用模块的支持了。明显的感受当然是编译速度极大提升。当包含的头文件没有改动的时候，就不用每次
+都编译它们了，所以变快了。modulemap还有更多的功能，可以选择性地一些实现细节，export公开的api。

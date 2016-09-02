@@ -1,9 +1,12 @@
+#include <limits>
 #include <vector>
 #include <unordered_map>
 #include <iostream>
 #include <catch_with_main.hpp>
 #include <catch_ext.hpp>
 #include <range/v3/all.hpp>
+
+const int abc = std::__1::numeric_limits<int>::digits;
 
 using namespace ranges;
 using namespace std;

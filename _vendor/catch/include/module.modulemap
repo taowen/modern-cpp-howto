@@ -1,0 +1,5 @@
+module catch {
+    requires cplusplus11
+    header "catch_with_main.hpp"
+    export *
+}

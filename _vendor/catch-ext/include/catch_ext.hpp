@@ -1,3 +1,4 @@
+#include <catch.hpp>
 #include <string>
 #include <unordered_map>
 #include <range/v3/all.hpp>

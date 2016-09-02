@@ -1,0 +1,4 @@
+module range_v3 {
+    umbrella "."
+    export *
+}
