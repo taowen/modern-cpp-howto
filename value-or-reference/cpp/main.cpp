@@ -208,21 +208,68 @@ TEST_CASE("move ownership") {
   // can not access hostsFile again, as the resource ownership has been moved
 }
 
-class MySocket {
-public:
-  constexpr MySocket() = default;
-  ~MySocket() = default;
+TEST_CASE("transient object") {
+  File file1("/etc/hosts");
+  File file2("/etc/hosts");
+  // file1 == file2; 没有默认实现的 ==，无需禁用
+  // file1 != file2; 没有默认实现的 !=，无需禁用
+  // unordered_map<File, int> some_map{}; 编译错误，MySocket没有实现hash
+  // auto file3 = file; copy constructor 已经被禁用
+  // file2 = file1; assignment constructor 已经被禁用
+  auto file3 = std::move(file1);
+}
 
-protected:
-  MySocket(const MySocket &) = delete;            // copy constructor
-  MySocket &operator=(const MySocket &) = delete; // assignment constructor
+class Order {
+public:
+  Order(int orderId, initializer_list<string_view> orderLines)
+      : orderId(orderId) {
+    for (auto const &orderLine : orderLines) {
+      this->orderLines.emplace_back(orderLine);
+    }
+  }
+  // move constructor
+  Order(Order &&that) {
+    orderId = that.orderId;
+    that.orderId = 0;
+    orderLines = std::move(that.orderLines);
+  }
+
+  auto getOrderId() const { return orderId; }
+
+private:
+  // disable copy constructor
+  Order(Order const &that) = delete;
+  // disable copy assignment
+  Order &operator=(Order const &that) = delete;
+
+  int orderId;
+  vector<string> orderLines;
 };
 
-TEST_CASE("transient object") {
-  MySocket sock1, sock2;
-  // sock1 == sock2; 没有默认实现的 ==，无需禁用
-  // sock1 != sock2; 没有默认实现的 !=，无需禁用
-  // unordered_map<MySocket, int> some_map{}; 编译错误，MySocket没有实现hash
-  // auto sock3 = sock1; copy constructor 已经被禁用
-  // sock2 = sock1; assignment constructor 已经被禁用
+bool operator==(Order const &left, Order const &right) {
+  return left.getOrderId() == right.getOrderId();
+}
+
+bool operator!=(Order const &left, Order const &right) {
+  return !(left == right);
+}
+
+namespace std {
+template <> struct hash<Order> {
+  size_t operator()(Order const &x) const {
+    return hash<int>()(x.getOrderId());
+  }
+};
+}
+
+TEST_CASE("entity object") {
+  auto order1 = Order(101, {"one fish", "one apple"});
+  auto order2 = Order(101, {"one Fish"});
+  cout << (order1 == order2) << endl;
+  cout << (order1 != order2) << endl;
+  auto some_map = unordered_map<Order, int>{};
+  some_map.emplace(std::move(order2), 1);
+  // auto order3 = order1; copy constructor deleted
+  // order2 = order1; copy assignment deleted
+  auto order3 = std::move(order1); // move is ok
 }

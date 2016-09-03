@@ -425,7 +425,7 @@ c++全部是默认拷贝值。
 
 ### 使用 const & 代表我只是使用者
 
-```
+```c++
 class Name {
 public:
   string firstName;
@@ -464,7 +464,7 @@ Archil Revazi
 
 对于python和java这样不是默认值拷贝的语言来说，写法是完全ok的。但是这里面隐藏了很多次不必要的值拷贝过程：
 
-```
+```c++
 class Name {
 public:
   string firstName;
@@ -532,7 +532,7 @@ Archil Revazi
 === 5 ===
 ```
 要把这些拷贝过程都去掉，正确的写法是
-```
+```c++
 void printFriendsByReference(vector<Name> const &friends) {
   for (size_t i = 0; i < friends.size(); i++) {
     Name const &theName = friends[i];
@@ -561,7 +561,7 @@ TEST_CASE("without expensive copy") {
 
 c++需要你手工控制对象的所有权。当我们要表示我需要拥有这个对象时，直接持有值。
 
-```
+```c++
 class File {
 public:
   File(string_view fileName) { fileHandle = fopen(fileName.data(), "r"); }
@@ -594,7 +594,7 @@ TEST_CASE("read_file") {
 
 如果值对象代表了所有权。那么如何实现工厂方法呢？
 
-```
+```c++
 auto openHostsFile() { return File("/etc/hosts"); }
 
 TEST_CASE("use factory") {
@@ -605,7 +605,7 @@ TEST_CASE("use factory") {
 ```
 
 目测这里会拷贝两次File对象啊。既然我们把拷贝构造函数禁用了，这里自然不编译通过了。如果把拷贝构造函数打开
-```
+```c++
 // copy constructor
   File(File const &that) {
     fileHandle = that.fileHandle;
@@ -617,7 +617,7 @@ TEST_CASE("use factory") {
 
 一次构造两个对象也是可以的
 
-```
+```c++
 auto giveTwoNames() {
   return make_pair(Name("Meliton", "Soso"), Name("Bidzina", "Iona"));
 }
@@ -631,7 +631,7 @@ TEST_CASE("return tuple") {
 
 成本只有make_pair是发生的两次move构造。如果想把这两次move的成本也省去也是可以的：
 
-```
+```c++
 auto giveTwoNamesWithoutMove() {
   // 内存直接分配在pair上，而不是先构造好一个对象再move到pair内部
   // emplace 的增强版，piecewise construct
@@ -651,7 +651,7 @@ TEST_CASE("return tuple more efficiently") {
 
 ### 所有权转移
 
-```
+```c++
 class File {
 public:
   File(string_view fileName) { fileHandle = fopen(fileName.data(), "r"); }
@@ -727,6 +727,29 @@ const & 需要多打好多个字符呢。
 复制也应该是一个显式的操作，而不是默认的就帮你做了，而且还有一个默认的实现。我认为copy constructor 就不应该存在，是语言的一个bug。
 所有的拷贝都应该是明显的方法调用。
 
+Google也持相同观点，显然是语言本身的问题：
+```
+// A macro to disallow the copy constructor and operator= functions
+// This should be used in the private: declarations for a class
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) 
+  TypeName(const TypeName&);               
+  void operator=(const TypeName&)
+
+// An older, deprecated, politically incorrect name for the above.
+// NOTE: The usage of this macro was baned from our code base, but some
+// third_party libraries are yet using it.
+// TODO(tfarina): Figure out how to fix the usage of this macro in the
+// third_party libraries and get rid of it.
+#define DISALLOW_EVIL_CONSTRUCTORS(TypeName) DISALLOW_COPY_AND_ASSIGN(TypeName)
+
+class Foo {
+public:
+  int bar();
+private:
+DISALLOW_EVIL_CONSTRUCTORS(Foo);
+};
+```
+
 ## 使用c++的语义满足业务建模的需求
 
 在 value/entity/transient 的分类下，对于 entity 和 transient 两类对象我们基本上都不需要拷贝的语义。
@@ -757,15 +780,17 @@ const & 需要多打好多个字符呢。
 
 ### transient
 
+| 分类 | copyable | movable |  overload == | std::hash | 例子 | 
+| --  |  --       | --      | --          | -- |  -- |
+| transient | NO  | YES    | NO  |  NO | 网络socket，文件句柄 |
+
 Python 版本
 
 ```python
 # coding=utf-8
 import copy
 
-# 网络 socket 显然应该属于 transient object
-
-class MySocket(object):
+class File(object):
     def __eq__(self, other):
         raise Exception('transient object does not support ==')
 
@@ -781,46 +806,156 @@ class MySocket(object):
     def __deepcopy__(self, memo):
         raise Exception('transient object does not support deep copy')
 
-sock1 = MySocket()
-sock2 = MySocket()
-# print(sock1 == sock2) 会抛异常
-# print(sock1 != sock2) 会抛异常
-# print(sock1 <> sock2) 会抛异常
-# some_map = {sock1: None} 会抛异常
-# copy.copy(sock1) 会抛异常
-# copy.deepcopy(sock1) 会抛异常
+file1 = File()
+file2 = File()
+# print(file1 == file2) 会抛异常
+# print(file1 != file2) 会抛异常
+# some_map = {file1: None} 会抛异常
+# copy.copy(file1) 会抛异常
+# copy.deepcopy(file1) 会抛异常
 ```
 
 C++ 版本
 
 ```c++
-#include <unordered_map>
-#include <catch_with_main.hpp>
-
-class MySocket {
+class File {
 public:
-    constexpr MySocket() = default;
-    ~MySocket() = default;
+  File(string_view fileName) { fileHandle = fopen(fileName.data(), "r"); }
+  ~File() {
+    if (nullptr != fileHandle) {
+      fclose(fileHandle);
+    }
+  }
 
-protected:
-    MySocket( const MySocket& ) = delete; // copy constructor
-    MySocket& operator=( const MySocket& ) = delete; // copy assignment
+  // move constructor
+  File(File &&that) {
+    this->fileHandle = that.fileHandle;
+    that.fileHandle = nullptr;
+    cout << "moved\n";
+  }
+
+private:
+  File(File const &) = delete;            // disable copy
+  File &operator=(File const &) = delete; // disable copy assign
+  FILE *fileHandle;
 };
 
 TEST_CASE("transient object") {
-    MySocket sock1, sock2;
-    // sock1 == sock2; 没有默认实现的 ==，无需禁用
-    // sock1 != sock2; 没有默认实现的 !=，无需禁用
-    // std::unordered_map<MySocket, int> some_map{}; 编译错误，MySocket没有实现std::hash
-    // auto sock3 = sock1; copy constructor 已经被禁用
-    // sock2 = sock1; copy assignment 已经被禁用
+  File file1("/etc/hosts");
+  File file2("/etc/hosts");
+  // file1 == file2; 没有默认实现的 ==，无需禁用
+  // file1 != file2; 没有默认实现的 !=，无需禁用
+  // unordered_map<File, int> some_map{}; 编译错误，MySocket没有实现hash
+  // auto file3 = file; copy constructor 已经被禁用
+  // file2 = file1; assignment constructor 已经被禁用
+  auto file3 = std::move(file1); // file1的资源所有权转移给了file3
 }
 ```
 
-## Move
+### entity
 
-TODO：什么是move
 
-## Summary
+| 分类 | copyable | movable |  overload == | std::hash | 例子 | 
+| --  |  --       | --      | --          | -- |  -- |
+| entity    | NO  | YES    | YES (by id) | NO | 司机，乘客，账户，订单 |
 
-TODO：给出不同场景下，用什么样的引用方式
+Python 版本
+
+```
+class Order(object):
+    def __init__(self, order_id, *order_lines):
+        self.order_id = order_id
+        self.order_lines = list(order_lines)
+
+    def __eq__(self, other):
+        return self.order_id == other.order_id
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __hash__(self):
+        return hash(self.order_id)
+
+    def __copy__(self):
+        raise Exception('entity object does not support shallow copy')
+
+    def __deepcopy__(self, memo):
+        raise Exception('entity object does not support deep copy')
+
+order1 = Order(101, 'one fish', 'one apple')
+order2 = Order(101, 'one Fish')
+print(order1 == order2) # True
+print(order1 != order2) # False
+some_map = {order1: None} # works
+# copy.copy(order1) 会抛异常
+# copy.deepcopy(order1) 会抛异常
+```
+
+C++版本
+
+```
+class Order {
+public:
+  Order(int orderId, initializer_list<string_view> orderLines)
+      : orderId(orderId) {
+    for (auto const &orderLine : orderLines) {
+      this->orderLines.emplace_back(orderLine);
+    }
+  }
+  // move constructor
+  Order(Order &&that) {
+    orderId = that.orderId;
+    that.orderId = 0;
+    orderLines = std::move(that.orderLines);
+  }
+
+  auto getOrderId() const { return orderId; }
+
+private:
+  // disable copy constructor
+  Order(Order const &that) = delete;
+  // disable copy assignment
+  Order &operator=(Order const &that) = delete;
+
+  int orderId;
+  vector<string> orderLines;
+};
+
+bool operator==(Order const &left, Order const &right) {
+  return left.getOrderId() == right.getOrderId();
+}
+
+bool operator!=(Order const &left, Order const &right) {
+  return !(left == right);
+}
+
+namespace std {
+template <> struct hash<Order> {
+  size_t operator()(Order const &x) const {
+    return hash<int>()(x.getOrderId());
+  }
+};
+}
+
+TEST_CASE("entity object") {
+  auto order1 = Order(101, {"one fish", "one apple"});
+  auto order2 = Order(101, {"one Fish"});
+  cout << (order1 == order2) << endl;
+  cout << (order1 != order2) << endl;
+  auto some_map = unordered_map<Order, int>{};
+  some_map.emplace(std::move(order2), 1);
+  // auto order3 = order1; copy constructor deleted
+  // order2 = order1; copy assignment deleted
+  auto order3 = std::move(order1); // move is ok
+}
+```
+
+这里使用了std::hash支持了object作为map的key来使用。
+但是因为entity是non copyable的，所以只能用emplace插入元素。
+
+
+### mutable value
+
+| 分类 | copyable | movable |  overload == | std::hash | 例子 | 
+| --  |  --       | --      | --          | -- |  -- |
+| mutable value  | YES | YES | YES (by values) | NO | 各种容器，vector，unordered_map |
