@@ -19,9 +19,10 @@ java 程序员是幸福的，在 java 的世界里当设计一个 class，实例
 
 当我们需要在代码里对一个真实世界的概念进行建模的时候，需要考虑如此多的方面，难怪c++比java难用那么多。
 
-## 对象自身的语义
+## 对象的业务含义
 
-参见 http://martinfowler.com/bliki/EvansClassification.html 。不精确的企业应用开发者，把对象分为三类：
+无论是传值还是传引用，不管用什么语言，编程总是用来解决真实世界中的问题的。我们要在程序语言中建模的对象无非这么几种。
+参见 http://martinfowler.com/bliki/EvansClassification.html 。Java企业应用开发者，习惯于把对象分为三类：
 
 * value object，值对象
 * entity object，实体对象
@@ -46,9 +47,18 @@ You also hear these called "reference objects".
 
 有一些对象是不会被序列化的，也不会被保存到数据库里的。transient表示它们是短暂地存在于计算机的内存中的，对于真实世界来说没有长远的影响。
 
-## 传参方式
+| 对象类型 | 拷贝 | 比较是否相等 | 
+| --      | --   | --       |
+| value   | 可以 | 所有值相等 |
+| entity  | 不可 | id相等    |
+| transient | 不可 | 不可    |
+
+然后我们来看在c++中应该怎么样把其名目繁多的语法映射到我们的需求上来。
+
+## c++是值拷贝的语言
 
 不同语言在参数传递的时候行为有很大的不同。理解C++对于其他语言背景的开发一个很大的挑战在于其默认的value copy的行为。
+这个行为可以通过以下一系列和其他语言的对比清楚地展现出来：
 
 ### 传递单个原生值
 
@@ -409,10 +419,284 @@ TEST_CASE("pass struct value") {
 python和java，全部都是拷贝指针的行为。
 c++全部是默认拷贝值。
 
-## copy v.s const
+## 正确使用值对象的姿势
+
+值拷贝是非常昂贵的，值对像对于初学者来说非常容易误用。这种误用是语言的，而不是人的问题。
+
+### 使用 const & 代表我只是使用者
+
+```
+class Name {
+public:
+  string firstName;
+  string lastName;
+
+  // no arg default constructor
+  Name() = default;
+
+  // contructor for actual name
+  Name(string_view firstName, string_view lastName)
+      : firstName(firstName), lastName(lastName) {}
+};
+
+void printFriends(vector<Name> friends) {
+  Name theName;
+  for (size_t i = 0; i < friends.size(); i++) {
+    theName = friends[i];
+    cout << theName.firstName << " " << theName.lastName << endl;
+  }
+}
+
+TEST_CASE("expensive copy") {
+  auto friends = vector<Name>{
+      {"Meliton", "Soso"}, {"Bidzina", "Iona"}, {"Archil", "Revazi"}};
+  printFriends(friends);
+}
+```
+
+这段代码表面上看过去没有问题。编译正常，执行之后输出是
+
+```
+Meliton Soso
+Bidzina Iona
+Archil Revazi    
+```
+
+对于python和java这样不是默认值拷贝的语言来说，写法是完全ok的。但是这里面隐藏了很多次不必要的值拷贝过程：
+
+```
+class Name {
+public:
+  string firstName;
+  string lastName;
+
+  // no arg default constructor
+  Name() = default;
+
+  // contructor for actual name
+  Name(string_view firstName, string_view lastName)
+      : firstName(firstName), lastName(lastName) {}
+
+  // copy constructor
+  Name(Name const &that) : firstName(that.firstName), lastName(that.lastName) {
+    cout << "copied" << endl;
+  }
+
+  // copy assignment
+  Name &operator=(Name const &that) {
+    firstName = that.firstName;
+    lastName = that.lastName;
+    cout << "copy assigned" << endl;
+    return *this;
+  }
+};
+
+void printFriends(vector<Name> friends) {
+  cout << "=== 3 ===" << endl;
+  Name theName;
+  cout << "=== 4 ===" << endl;
+  for (size_t i = 0; i < friends.size(); i++) {
+    theName = friends[i];
+    cout << theName.firstName << " " << theName.lastName << endl;
+  }
+  cout << "=== 5 ===" << endl;
+}
+
+TEST_CASE("expensive copy") {
+  cout << "=== 1 ===" << endl;
+  auto friends = vector<Name>{
+      {"Meliton", "Soso"}, {"Bidzina", "Iona"}, {"Archil", "Revazi"}};
+  cout << "=== 2 ===" << endl;
+  printFriends(friends);
+}
+```
+
+输出是
+```
+=== 1 ===
+copied
+copied
+copied
+=== 2 ===
+copied
+copied
+copied
+=== 3 ===
+=== 4 ===
+copy assigned
+Meliton Soso
+copy assigned
+Bidzina Iona
+copy assigned
+Archil Revazi
+=== 5 ===
+```
+要把这些拷贝过程都去掉，正确的写法是
+```
+void printFriendsByReference(vector<Name> const &friends) {
+  for (size_t i = 0; i < friends.size(); i++) {
+    Name const &theName = friends[i];
+    cout << theName.firstName << " " << theName.lastName << endl;
+  }
+}
+
+TEST_CASE("without expensive copy") {
+  auto friends = vector<Name>();
+  friends.reserve(3); // to avoid resize vector causing copy
+  friends.emplace_back("Meliton", "Soso");
+  friends.emplace_back("Bidzina", "Iona");
+  friends.emplace_back("Archil", "Revazi");
+  printFriendsByReference(friends);
+}
+```
+这里遇到了以下几个问题
+* 如果不是用emplace系列的方法把新建对象插入到容器里就会产生拷贝行为，emplace新建的对象是直接把内存分配在容器内部的
+* 默认传参行为是拷贝，而传递一个vector就会拷贝每一个元素。所以当对象不是你拥有的，你只是使用者时把类型标记为 const & 
+* 对值对象的复制会产生拷贝赋值行为，当一个变量只是在使用而不是拥有时，把类型标记为 const &
+
+值对象好难用啊。是不是能不用值对象，而只用指针，然后就能像python和java一样呢？如果是那样的话，直接去用python或者java好了。
+值对象是c++的基础。
+
+### 直接使用值，代表我是其拥有者
+
+c++需要你手工控制对象的所有权。当我们要表示我需要拥有这个对象时，直接持有值。
+
+```
+class File {
+public:
+  File(string_view fileName) { fileHandle = fopen(fileName.data(), "r"); }
+  ~File() { fclose(fileHandle); }
+  string readAll() {
+    fseek(fileHandle, 0, SEEK_END);
+    auto size = static_cast<size_t>(ftell(fileHandle));
+    auto buf = string(size, ' ');
+    fseek(fileHandle, 0, SEEK_SET);
+    fread(&buf[0], 1, size, fileHandle);
+    return buf;
+  }
+
+private:
+  File(File const &) = delete;            // disable copy
+  File &operator=(File const &) = delete; // disable copy assign
+  FILE *fileHandle;
+};
+
+TEST_CASE("read_file") {
+  File hostsFile("/etc/hosts");
+  cout << hostsFile.readAll() << endl;
+}
+```
+
+当我们拥有hostsFile这个变量的时候，我们也拥有了这个变量所指向的资源（堆上的内存，文件句柄，网络socket等）。
+在当前函数退出的时候，这个变量会被析构，从而释放拥有的资源。所有值对象，都代表了我是其使用者。
+
+### 工厂方法
+
+如果值对象代表了所有权。那么如何实现工厂方法呢？
+
+```
+File openHostsFile() { return File("/etc/hosts"); }
+
+TEST_CASE("use factory") {
+  //  won't compile with copy constructor disabled
+  auto hostsFile = openHostsFile();
+  cout << hostsFile.readAll().size() << endl;
+}
+```
+
+目测这里会拷贝两次File对象啊。既然我们把拷贝构造函数禁用了，这里自然不编译通过了。如果把拷贝构造函数打开
+```
+// copy constructor
+  File(File const &that) {
+    fileHandle = that.fileHandle;
+    cout << "copied\n";
+  }
+```
+这段代码是错误的，因为拷贝的结果是两个File握有同一个句柄，导致一个fclose之后另外一个无法使用。但是这不是重点。关键是copied并没有被输出。
+也就是工厂方法可以直接返回值本身，不用担心拷贝的问题。
+
+### 所有权转移
+
+```
+class File {
+public:
+  File(string_view fileName) { fileHandle = fopen(fileName.data(), "r"); }
+  ~File() {
+    if (nullptr != fileHandle) {
+      fclose(fileHandle);
+    }
+  }
+
+  // move constructor
+  File(File &&that) {
+    this->fileHandle = that.fileHandle;
+    that.fileHandle = nullptr;
+    cout << "moved\n";
+  }
+
+  string readAll() {
+    fseek(fileHandle, 0, SEEK_END);
+    auto size = static_cast<size_t>(ftell(fileHandle));
+    auto buf = string(size, ' ');
+    fseek(fileHandle, 0, SEEK_SET);
+    fread(&buf[0], 1, size, fileHandle);
+    return buf;
+  }
+
+private:
+  File(File const &) = delete;            // disable copy
+  File &operator=(File const &) = delete; // disable copy assign
+  FILE *fileHandle;
+};
+
+File openHostsFile() { return File("/etc/hosts"); }
+
+void printFileContent(File file) { cout << file.readAll().size() << endl; }
+
+TEST_CASE("move ownership") {
+  auto hostsFile = openHostsFile();
+  printFileContent(std::move(hostsFile));
+  // can not access hostsFile again, as the resource ownership has been moved
+}
+```
+
+当我们传递参数的时候，如果用 const & 表示只是给你用。如果传递的是原值，这个时候会出发拷贝构造函数，表示共享资源的所有权。
+如果对象不允许这样的共享，应该禁用拷贝构造函数。如果我们传递的是 std::move() 这个时候表示的是我放弃对这个资源的所有权，它以后就是你的了。
+如果这份资源是堆上的内存的话，copy的意思是复制整个堆上的内容，move的意义就是把指针交给你，我的指针变成nullptr。
+
+在上面的例子里，调用printFileContent的时候，是把hostsFile的所有权转移走了。当然这个例子并不好，因为实际上传 const & 是更符合的做法。
+std::move的使用表示我们可以这么做。
+
+
+### defaults
+
+因为 c++ 语言的设计缺陷，使得我们需要用大量的惯用法来克服语言自身设计的缺陷。比如大部分场景上我们只需要 const 使用，为什么 const 不是默认行为？
+大部分情况下我们只是希望拿到一个引用，而值拷贝为什么是默认行为而不是取引用？ const & 是对计算机来说成本最低的实现，而对程序员来说使用
+const & 需要多打好多个字符呢。
+
+下面是拼凑出来的一个 defaults 表，用于减少心智负担
+
+| 场景 |  defaults |
+| --  |  -- |
+| 何时使用value，何时使用pointer？ | 自己写的代码里基本上不需要pointer，全部用value都可以。因为大部分指针都包含在vector这样的容器内部了 |
+| 所有权：在方法 scope 内持有资源，比如一个临时的锁 | keep value as local variable |
+| 所有权：在对象的生命周期内持有资源，比如关联的堆上内存 | keep value as field |
+| 传参：传值给别人使用 | const & |
+| 传参：复制一份所有权，传递给人 | pass value with copy constructor |
+| 传参：转移所有权 | std::move() |
+| 传参：引用不可空，如何表示optional | std::optional |
+| 返回值：工厂方法  | return value |
+| 返回值：多个返回值 | return pair or tuple |
+| 返回值：复制成本很高的值 | 传递非const的 & |
+
+纵观上面的表格，什么时候需要使用copy constructor？只有一个场景，就是表示所有权的复制的时候。且不说所有权大部分时候应该是独占的，就是支持
+复制也应该是一个显式的操作，而不是默认的就帮你做了，而且还有一个默认的实现。我认为copy constructor 就不应该存在，是语言的一个bug。
+所有的拷贝都应该是明显的方法调用。
+
+## 使用c++的语义满足业务建模的需求
 
 在 value/entity/transient 的分类下，对于 entity 和 transient 两类对象我们基本上都不需要拷贝的语义。
-在go和php这样支持拷贝语义的语言中，我们是无法阻止拷贝的。但是C++可以，方法是把copy constructor关掉。
+在go和php这样支持拷贝语义，但是配套工具并不齐全的语言中，我们是无法阻止拷贝的。但是C++可以，方法是把copy constructor关掉。
 参见 https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Non-copyable_Mixin 。
 
 那么对于value object来说，我们就一定使用拷贝么？在理想的世界里，value object全部都是immutable的。所有的传递 value object 都是拷贝，
@@ -422,16 +706,20 @@ c++全部是默认拷贝值。
 更常见的 value object 设计是 mutable 的。但是允许只读的访问视图，这个就是 const 。
 它可以在不创建新的拷贝的情况下，保证对该变量的访问是只读的。
 
-综上，有这么几种class
+综上，有这么几种class，我们需要来看在c++中怎么实现
 
 * transient，不支持 equals，不能拷贝
 * entity, id equals，不能拷贝
 * mutable value，支持 equals，可以拷贝
-* immutable value，支持 equals，可以拷贝，修改返回新对象
+* immutable value，支持 equals，可以拷贝，修改返回新对象。在python的list是mutable的，tuple是immutable的。list不可以作为hash key，
+而tuple可以。
 
-在设计一个class的时候，思考其究竟应该属于哪一种。然后根据下面的样式仿照着来写，而不是使用默认的c++编译器的行为。
-java/python 默认支持equals，有时应该禁用。而c++默认支持拷贝构造，有时也应该禁用。
-语言的默认是不够的，默认行为应该根据不同的class而分为四种默认行为。
+| 分类 | copyable | movable |  overload == | std::hash | 例子 | 
+| --  |  --       | --      | --          | -- |  -- |
+| transient | NO  | YES    | NO  |  NO | 网络socket，文件句柄 |
+| entity    | NO  | YES    | YES (by id) | NO | 司机，乘客，账户，订单 |
+| mutable value  | YES | YES | YES (by values) | NO | 各种容器，vector，unordered_map |
+| immutable value | YES | NO | YES (by values) | YES | 基本值，int，long，日期，钱 |
 
 ### transient
 
