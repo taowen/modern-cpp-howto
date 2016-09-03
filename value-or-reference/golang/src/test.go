@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"unsafe"
 )
 
 type MyStruct struct {
@@ -26,8 +27,11 @@ func main() {
 	}
 	{
 		local_variable := MyStruct{1}
+		fmt.Println(unsafe.Pointer(&local_variable))
 		local_variable.modify_struct_value()
 		fmt.Println(local_variable) // {1}
+		copied := local_variable.copy_my_self()
+		fmt.Println(unsafe.Pointer(&copied))
 	}
 }
 
@@ -46,5 +50,10 @@ func modify_list_value(list []int) {
 // 何时使用指针
 // https://golang.org/doc/faq#methods_on_values_or_pointers
 func (self MyStruct) modify_struct_value() {
+	fmt.Println(unsafe.Pointer(&self))
 	self.field = 2
+}
+func (self MyStruct) copy_my_self() MyStruct {
+	fmt.Println(unsafe.Pointer(&self))
+	return self
 }

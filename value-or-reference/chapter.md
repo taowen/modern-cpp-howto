@@ -48,7 +48,9 @@ You also hear these called "reference objects".
 
 ## 传参方式
 
-### 单个原生值
+不同语言在参数传递的时候行为有很大的不同。理解C++对于其他语言背景的开发一个很大的挑战在于其默认的value copy的行为。
+
+### 传递单个原生值
 
 单个原生值传递没有什么异议，基本上所有的语言行为都一样。
 
@@ -120,7 +122,7 @@ TEST_CASE("pass single value") {
 }
 ```
 
-### 单个原生值的引用
+### 传递单个原生值的引用
 
 Python，啥引用？没这东西。也不支持指针。
 
@@ -201,7 +203,7 @@ TEST_CASE("pass single pointer") {
 根据前辈的说法，总是使用引用，直到无法使用为止。引用相当于不可nullptr的指针。指针和引用就是支持和不支持两种，一旦支持了行为都是一样的。
 后面我们主要关注直接传值时各种语言的默认行为。
 
-### list值
+### 传递list类型的值
 
 Python
 
@@ -283,7 +285,7 @@ TEST_CASE("pass list value") {
 
 C++的语义很清楚，就是copy by default。只要是传值就拷贝一份。这个例子里和 php 行为相同。
 
-### struct值
+### 传递struct类型值
 
 一般list和map这些都是语言内置，或者标准库支持的。而struct是给我们自己扩充模型的。两者的行为未必相同。先看python的
 
