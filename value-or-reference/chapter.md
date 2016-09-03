@@ -19,7 +19,12 @@ java 程序员是幸福的，在 java 的世界里当设计一个 class，实例
 
 当我们需要在代码里对一个真实世界的概念进行建模的时候，需要考虑如此多的方面，难怪c++比java难用那么多。
 
-## 对象的业务含义
+* [对象的业务含义](#business-meaning)
+* [c++是值拷贝的语言](#value-copy)
+* [正确使用值对象的姿势](#value-object-howto)
+* [使用c++的语义满足业务建模的需求](#application)
+
+## 对象的业务含义 {#business-meaning}
 
 无论是传值还是传引用，不管用什么语言，编程总是用来解决真实世界中的问题的。我们要在程序语言中建模的对象无非这么几种。
 参见 http://martinfowler.com/bliki/EvansClassification.html 。Java企业应用开发者，习惯于把对象分为三类：
@@ -55,7 +60,7 @@ You also hear these called "reference objects".
 
 然后我们来看在c++中应该怎么样把其名目繁多的语法映射到我们的需求上来。
 
-## c++是值拷贝的语言
+## c++是值拷贝的语言 {#value-copy}
 
 不同语言在参数传递的时候行为有很大的不同。理解C++对于其他语言背景的开发一个很大的挑战在于其默认的value copy的行为。
 这个行为可以通过以下一系列和其他语言的对比清楚地展现出来：
@@ -419,7 +424,7 @@ TEST_CASE("pass struct value") {
 python和java，全部都是拷贝指针的行为。
 c++全部是默认拷贝值。
 
-## 正确使用值对象的姿势
+## 正确使用值对象的姿势 {#value-object-howto}
 
 值拷贝是非常昂贵的，值对像对于初学者来说非常容易误用。这种误用是语言的，而不是人的问题。
 
@@ -685,7 +690,7 @@ private:
 
 File openHostsFile() { return File("/etc/hosts"); }
 
-void printFileContent(File file) { cout << file.readAll().size() << endl; }
+void printFileContent(File &&file) { cout << file.readAll().size() << endl; }
 
 TEST_CASE("move ownership") {
   auto hostsFile = openHostsFile();
@@ -699,7 +704,41 @@ TEST_CASE("move ownership") {
 如果这份资源是堆上的内存的话，copy的意思是复制整个堆上的内容，move的意义就是把指针交给你，我的指针变成nullptr。
 
 在上面的例子里，调用printFileContent的时候，是把hostsFile的所有权转移走了。当然这个例子并不好，因为实际上传 const & 是更符合的做法。
-std::move的使用表示我们可以这么做。
+std::move的使用表示我们可以这么做。`printFileContent(File &&file)` 这个写法表示我需要拥有一份这个资源。
+事实上因为有了右值引用，我们可以永远不使用直接接受值的方法了。当我们可以写
+
+```
+void f(A&& a)
+```
+
+为什么还需要？
+
+```
+void f(A a)
+```
+
+使用右值引用，所有权是显式转移的，比如下面的写法是不work的
+
+```
+A a;
+f(a); // 语法错误，a是一个左值 
+```
+
+如果我们需要共享所有权给f，那么就复制
+```
+A a;
+f(copy(a)); // 复制一份成为右值
+```
+
+要么就释放自己的所有权，转移给f
+```
+A a;
+f(std::move(a)); // 所有权转移
+```
+
+一下子变清楚了，比`f(a)`这种写法清楚多了。因为`f(a)`不是给f使用a的语义，其实是复制一份所有权的意思，大部分情况下不是我们想要的。
+而使用 && 右值引用，调用方无论是拷贝一份给我们，还是转移自己的给我们，都可以，使用上也更灵活。
+所以`void f(A a)` 这样的写法可以退出历史舞台了。
 
 
 ### defaults
@@ -708,26 +747,31 @@ std::move的使用表示我们可以这么做。
 大部分情况下我们只是希望拿到一个引用，而值拷贝为什么是默认行为而不是取引用？ const & 是对计算机来说成本最低的实现，而对程序员来说使用
 const & 需要多打好多个字符呢。
 
-下面是拼凑出来的一个 defaults 表，用于减少心智负担
+何时使用value，何时使用pointer？ 自己写的代码里基本上不需要pointer，全部用value都可以。因为大部分指针都包含在vector这样的容器内部了。
+一个自定义类型很难写出非常多的field导致拷贝成本很高的。一般来说只有vector这样动态变长的东西，才需要使用指针。
+而标准库已经把这些不好写的家伙都写好了。在 modern c++ 中可以严肃地考虑一下全部使用value和reference完成编码了，
+而不再需要直接操作pointer。
 
-| 场景 |  defaults |
-| --  |  -- |
-| 何时使用value，何时使用pointer？ | 自己写的代码里基本上不需要pointer，全部用value都可以。因为大部分指针都包含在vector这样的容器内部了 |
-| 所有权：在方法 scope 内持有资源，比如一个临时的锁 | keep value as local variable |
-| 所有权：在对象的生命周期内持有资源，比如关联的堆上内存 | keep value as field |
-| 传参：传值给别人使用 | const & |
-| 传参：复制一份所有权，传递给人 | pass value with copy constructor |
-| 传参：转移所有权 | std::move() |
-| 传参：引用不可空，如何表示optional | std::optional |
-| 返回值：工厂方法  | return value |
-| 返回值：多个返回值 | return pair or tuple |
-| 返回值：复制成本很高的值 | 传递非const的 & |
+下面是拼凑出来的一个查找表，用于减少心智负担。当看到了左边的写法的时候，看看右边就知道在表达什么意思了。
 
-纵观上面的表格，什么时候需要使用copy constructor？只有一个场景，就是表示所有权的复制的时候。且不说所有权大部分时候应该是独占的，就是支持
-复制也应该是一个显式的操作，而不是默认的就帮你做了，而且还有一个默认的实现。我认为copy constructor 就不应该存在，是语言的一个bug。
-所有的拷贝都应该是明显的方法调用。
+| 场景 | 写法 | 含义 |
+| --  |  -- | -- |
+| 用函数生命周期持有资源| void f() { A a; ... } | 在f函数的生命周期内，拥有a所持有的资源。f是a的owner |
+| 用对象持有资源| obj.field = some_value // field 是一个值类型 | 拷贝一份some_value，obj和some_value共享对底层资源的所有权 |
+| 用对象持有资源 | obj.field = std::move(some_value) | 由obj开始负责some_value原来负责的资源 |
+| 函数签名 | void f(A &&a) | 我需要拥有这个参数，是否是独占的取决传入方 |
+| 函数签名 | void f(A const &a) | 我只是一个普通的使用者而已，a不可空 |
+| 调用函数 | f(copy(a)) | 复制一份a的所有权，交给f |
+| 调用函数 | f(std::move(a)) | 放弃对a的所有权，移交给f |
+| 调用函数 | f(a) | 假定已经没有隐式拷贝构造和隐式类型转换这两个邪恶的存在的话，我们可以认为是把a给f用一用，但是f并不拥有a |
+| 返回值 | A f() { return A(); } | 用值类型返回是非常高效的 |
+| 返回值 | void f(A &a) | a既是参数又是返回值 |
 
-Google也持相同观点，显然是语言本身的问题：
+纵观上面的表格，什么时候需要使用copy constructor？ copy constructor 就不应该存在，是语言的一个bug。
+所有的拷贝都应该是显式的方法调用的形式。
+什么时候需要`void f(A a)`写法了？没有一处。要么用 && 要么用 const &。
+
+对于拷贝构造函数，这段chrome项目里的注释说明了一种态度：
 ```
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
@@ -749,8 +793,10 @@ private:
 DISALLOW_EVIL_CONSTRUCTORS(Foo);
 };
 ```
+拥有默认拷贝构造函数，以及没有右值引用的c++ 98是丑陋的。如果我们可以从现在开始抛弃拷贝构造函数，拥抱右值引用，modern c++可以变得非常可爱。
+当我们看一眼函数的签名，就知道这些参数是被怎样使用的，是非常爽的事情。
 
-## 使用c++的语义满足业务建模的需求
+## 使用c++的语义满足业务建模的需求 {#application}
 
 在 value/entity/transient 的分类下，对于 entity 和 transient 两类对象我们基本上都不需要拷贝的语义。
 在go和php这样支持拷贝语义，但是配套工具并不齐全的语言中，我们是无法阻止拷贝的。但是C++可以，方法是把copy constructor关掉。

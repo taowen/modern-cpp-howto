@@ -1,4 +1,5 @@
 #include <catch_with_main.hpp>
+#include <experimental/optional>
 #include <range/v3/all.hpp>
 #include <string>
 #include <tuple>
@@ -200,7 +201,7 @@ TEST_CASE("use factory") {
   cout << hostsFile.readAll().size() << endl;
 }
 
-void printFileContent(File file) { cout << file.readAll().size() << endl; }
+void printFileContent(File &&file) { cout << file.readAll().size() << endl; }
 
 TEST_CASE("move ownership") {
   auto hostsFile = openHostsFile();
