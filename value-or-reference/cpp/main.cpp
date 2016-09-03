@@ -1,6 +1,7 @@
 #include <catch_with_main.hpp>
 #include <range/v3/all.hpp>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -133,6 +134,28 @@ TEST_CASE("without expensive copy") {
   printFriendsByReference(friends);
 }
 
+auto giveTwoNames() {
+  return make_pair(Name("Meliton", "Soso"), Name("Bidzina", "Iona"));
+}
+
+TEST_CASE("return tuple") {
+  auto[name1, name2] = giveTwoNames();
+  cout << name1.firstName << " " << name1.lastName << endl;
+  cout << name2.firstName << " " << name2.lastName << endl;
+}
+
+auto giveTwoNamesWithoutMove() {
+  return pair<Name, Name>(std::piecewise_construct,
+                          std::forward_as_tuple("Meliton", "Soso"),
+                          std::forward_as_tuple("Bidzina", "Iona"));
+}
+
+TEST_CASE("return tuple more efficiently") {
+  auto[name1, name2] = giveTwoNamesWithoutMove();
+  cout << name1.firstName << " " << name1.lastName << endl;
+  cout << name2.firstName << " " << name2.lastName << endl;
+}
+
 class File {
 public:
   File(string_view fileName) { fileHandle = fopen(fileName.data(), "r"); }
@@ -169,7 +192,7 @@ TEST_CASE("read_file") {
   cout << hostsFile.readAll().size() << endl;
 }
 
-File openHostsFile() { return File("/etc/hosts"); }
+auto openHostsFile() { return File("/etc/hosts"); }
 
 TEST_CASE("use factory") {
   //  won't compile with copy constructor disabled

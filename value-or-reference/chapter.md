@@ -595,7 +595,7 @@ TEST_CASE("read_file") {
 如果值对象代表了所有权。那么如何实现工厂方法呢？
 
 ```
-File openHostsFile() { return File("/etc/hosts"); }
+auto openHostsFile() { return File("/etc/hosts"); }
 
 TEST_CASE("use factory") {
   //  won't compile with copy constructor disabled
@@ -614,6 +614,40 @@ TEST_CASE("use factory") {
 ```
 这段代码是错误的，因为拷贝的结果是两个File握有同一个句柄，导致一个fclose之后另外一个无法使用。但是这不是重点。关键是copied并没有被输出。
 也就是工厂方法可以直接返回值本身，不用担心拷贝的问题。
+
+一次构造两个对象也是可以的
+
+```
+auto giveTwoNames() {
+  return make_pair(Name("Meliton", "Soso"), Name("Bidzina", "Iona"));
+}
+
+TEST_CASE("return tuple") {
+  auto[name1, name2] = giveTwoNames();
+  cout << name1.firstName << " " << name1.lastName << endl;
+  cout << name2.firstName << " " << name2.lastName << endl;
+}
+```
+
+成本只有make_pair是发生的两次move构造。如果想把这两次move的成本也省去也是可以的：
+
+```
+auto giveTwoNamesWithoutMove() {
+  // 内存直接分配在pair上，而不是先构造好一个对象再move到pair内部
+  // emplace 的增强版，piecewise construct
+  return pair<Name, Name>(std::piecewise_construct,
+                          std::forward_as_tuple("Meliton", "Soso"),
+                          std::forward_as_tuple("Bidzina", "Iona"));
+}
+
+TEST_CASE("return tuple more efficiently") {
+  auto[name1, name2] = giveTwoNamesWithoutMove();
+  cout << name1.firstName << " " << name1.lastName << endl;
+  cout << name2.firstName << " " << name2.lastName << endl;
+}
+```
+
+这下就完全没有额外的成本了。
 
 ### 所有权转移
 
