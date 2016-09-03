@@ -6,13 +6,15 @@
 #include <range/v3/all.hpp>
 #include <json.hpp>
 
+const int abc = std::__1::numeric_limits<int>::digits;
+
 using namespace std;
 using namespace ranges;
 using json = nlohmann::json;
 
 
 TEST_CASE("foreach on lazy range") {
-    for(const auto& x : view::ints(0, 6)) {
+    for(auto x : view::ints(0, 6)) {
         cout << x * x << endl;
     }
 }

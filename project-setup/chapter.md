@@ -2,14 +2,23 @@
 
 ## 开发环境
 
-* 操作系统: ubuntu 14.04
+* 操作系统: ubuntu 16.04
 * 编译器 clang 4.0: http://apt.llvm.org/ 使用 c++ 17
-* cmake: sudo apt-get install cmake
+* cmake 3.6: https://cmake.org/download/
+* IDE qtcreator 4.1: http://download.qt.io/official_releases/qtcreator
 * 包管理: git clone 依赖到自己的repository，所谓vendoring
-* IDE clion： https://www.jetbrains.com/clion/
 
-标准的 cmake 文件，启用 C++ 14 和 libc++。其中 _vendor 目录是我们用于保存包含的第三方库的位置。
+### cmake
 
+命令行参数设置cmake使用clang编译器
+```
+cmake
+-D CMAKE_C_COMPILER=clang -D CMAKE_CXX_COMPILER=clang++
+```
+
+### clang
+
+设置clang 启用 C++ 14 和 libc++。其中 _vendor 目录是我们用于保存包含的第三方库的位置。
 ```
 cmake_minimum_required(VERSION 3.6)
 project(unit-testing)
@@ -22,19 +31,7 @@ set(SOURCE_FILES main.cpp)
 add_executable(unit-testing ${SOURCE_FILES})
 ```
 
-clion 基本上可以有和 java 一样的IDE体验，包括 debugger 在内。绝对值得拥有。设置 clion 使用 clang
-
-```
-在 file -> settings -> cmake 下设置
--D CMAKE_C_COMPILER=clang -D CMAKE_CXX_COMPILER=clang++
-```
-
-参考资料
-
-* http://arne-mertz.de/2016/08/the-4c-development-environment/
-* http://blog.conan.io/2016/05/10/Programming-C++-with-the-4-Cs-Clang,-CMake,-CLion-and-Conan.html
-
-## libc++
+### libc++
 
 安装最新版本的 c++ 标准库
 
@@ -42,10 +39,17 @@ clion 基本上可以有和 java 一样的IDE体验，包括 debugger 在内。�
 git clone https://github.com/llvm-mirror/llvm.git llvm-src
 git clone https://github.com/llvm-mirror/libcxxabi.git llvm-src/projects/libcxxabi
 git clone https://github.com/llvm-mirror/libcxx.git llvm-src/projects/libcxx
+mkdir build
+cd build
 CC=clang CXX=clang++ cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release llvm-src
 make cxx -j 8
 sudo make install-libcxx install-libcxxabi
 ```
+
+### qtcreator
+
+选择qtcreator最主要的原因是因为它支持使用clang做语法补全。help => about plugins => ClangCodeModel
+
 
 ## 测试框架
 
@@ -177,12 +181,12 @@ c++一个很大的烦恼是编译速度非常慢。其中一个重要原因是�
 ```
 _vendor/range-v3/
 ├── include
-│   ├── meta
-│   │   ├── meta_fwd.hpp
-│   │   └── meta.hpp
-│   ├── module.modulemap
-│   └── range
-│       └── v3
+│   ├── meta
+│   │   ├── meta_fwd.hpp
+│   │   └── meta.hpp
+│   ├── module.modulemap
+│   └── range
+│       └── v3
 └── update.py
 ```
 
