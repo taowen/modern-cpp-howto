@@ -9,3 +9,6 @@ if (USE_MODULES)
 endif(USE_MODULES)
 set(SOURCE_FILES main.cpp)
 add_executable(value-or-reference ${SOURCE_FILES})
+
+find_package (Threads)
+target_link_libraries (value-or-reference ${CMAKE_THREAD_LIBS_INIT})

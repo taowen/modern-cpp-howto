@@ -796,6 +796,96 @@ DISALLOW_EVIL_CONSTRUCTORS(Foo);
 拥有默认拷贝构造函数，以及没有右值引用的c++ 98是丑陋的。如果我们可以从现在开始抛弃拷贝构造函数，拥抱右值引用，modern c++可以变得非常可爱。
 当我们看一眼函数的签名，就知道这些参数是被怎样使用的，是非常爽的事情。
 
+## 通过智能指针持有资源 {#smart-pointer}
+
+前面看到的所有资源都是被value持有的。在c++里，持有资源还有另外两种方式，unique_ptr 和 shared_ptr。
+
+| 写法 | 含义 |
+| --  |  -- |
+| A a | 在函数生命周期持有资源 |
+| obj.field = a | 在对象的生命周期持有资源 |
+| vector<A> aList | 利用vector代持资源 |
+| unique_ptr<A> a | a通过指针唯一持有资源 |
+| shared_ptr<A> a | a通过指针共享资源，智能计数 |
+| vector<unique_ptr<A>> aList | 利用vector代持资源，支持继承多态 |
+
+什么情况下pointer比reference有优势？原则上尽量使用value和reference，除非以下三种情况：
+* 值可空，因为reference不可空。同时可以考虑用std::optional替代
+* 资源需要共享使用，利用shared_ptr引用计数
+* `vector<unique_ptr<A>>`，如果vector里放的是具体类型的话，就不支持多态了
+
+### 引用计数
+
+```
+auto openFile(string_view fileName) { return make_unique<File>(fileName); }
+
+auto printInNewThread(shared_ptr<File> file) {
+  cout << file->readAll() << endl;
+}
+
+TEST_CASE("sharing resource") {
+  // make resource shared
+  auto etcHostsFile = shared_ptr<File>(std::move(openFile("/etc/hosts")));
+  thread thread1(printInNewThread, etcHostsFile);
+  thread thread2(printInNewThread, etcHostsFile);
+  etcHostsFile = nullptr; // release my copy
+  thread1.join();
+  thread2.join();
+}
+```
+
+这个例子里 `shared_ptr<File>` 记录了有多少个线程还持有了它的资源。当最后一个线程退出的时候才会释放资源。
+利用shared_ptr，我们所有的资源管理类都具有了引用计数的功能。而unique_ptr大部分时候可以被value替代。
+
+### 容器元素的多态
+
+```
+class Employee {
+public:
+  Employee() = default;
+  virtual ~Employee() {}
+  virtual void calculateSalary() const = 0;
+};
+
+class RegularEmployee : public Employee {
+  void calculateSalary() const override { cout << "regular employee\n"; }
+};
+
+class HourlyEmployee : public Employee {
+  void calculateSalary() const override { cout << "hourly employee\n"; }
+};
+
+TEST_CASE("container element polymorphism") {
+  auto employeeList = vector<unique_ptr<Employee>>();
+  employeeList.push_back(make_unique<RegularEmployee>());
+  employeeList.push_back(make_unique<HourlyEmployee>());
+  employeeList.push_back(make_unique<RegularEmployee>());
+  for (auto const &employee : employeeList) {
+    employee->calculateSalary();
+  }
+}
+```
+
+用一个容器来保存不同类型的元素，并且具有多态的行为，这个是value和reference无法做到的。
+
+```
+TEST_CASE("container element polymorphism by reference") {
+  auto regularEmployeeList = vector<RegularEmployee>();
+  regularEmployeeList.emplace_back();
+  auto hourlyEmployeeList = vector<HourlyEmployee>();
+  hourlyEmployeeList.emplace_back();
+  hourlyEmployeeList.emplace_back();
+  for (Employee const &employee : regularEmployeeList) {
+    employee.calculateSalary();
+  }
+  for (Employee const &employee : hourlyEmployeeList) {
+    employee.calculateSalary();
+  }
+}
+```
+
+具体类型容器的主要不便利的地方在于无法保存不同子类的元素。
+
 ## 使用c++的语义满足业务建模的需求 {#application}
 
 在 value/entity/transient 的分类下，对于 entity 和 transient 两类对象我们基本上都不需要拷贝的语义。

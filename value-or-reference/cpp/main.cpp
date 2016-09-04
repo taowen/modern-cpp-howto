@@ -3,6 +3,7 @@
 #include <experimental/optional>
 #include <range/v3/all.hpp>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -369,4 +370,59 @@ TEST_CASE("immutable value object") {
   auto some_map = unordered_map<Point, int>();
   auto p3 = p1; // copy constructor
   p3 = p2;      // copy assignment
+}
+
+auto openFile(string_view fileName) { return make_unique<File>(fileName); }
+
+auto printInNewThread(shared_ptr<File> file) {
+  cout << file->readAll() << endl;
+}
+
+TEST_CASE("sharing resource") {
+  // make resource shared
+  auto etcHostsFile = shared_ptr<File>(std::move(openFile("/etc/hosts")));
+  thread thread1(printInNewThread, etcHostsFile);
+  thread thread2(printInNewThread, etcHostsFile);
+  etcHostsFile = nullptr; // release my copy
+  thread1.join();
+  thread2.join();
+}
+
+class Employee {
+public:
+  Employee() = default;
+  virtual ~Employee() {}
+  virtual void calculateSalary() const = 0;
+};
+
+class RegularEmployee : public Employee {
+  void calculateSalary() const override { cout << "regular employee\n"; }
+};
+
+class HourlyEmployee : public Employee {
+  void calculateSalary() const override { cout << "hourly employee\n"; }
+};
+
+TEST_CASE("container element polymorphism") {
+  auto employeeList = vector<unique_ptr<Employee>>();
+  employeeList.push_back(make_unique<RegularEmployee>());
+  employeeList.push_back(make_unique<HourlyEmployee>());
+  employeeList.push_back(make_unique<RegularEmployee>());
+  for (auto const &employee : employeeList) {
+    employee->calculateSalary();
+  }
+}
+
+TEST_CASE("container element polymorphism by reference") {
+  auto regularEmployeeList = vector<RegularEmployee>();
+  regularEmployeeList.emplace_back();
+  auto hourlyEmployeeList = vector<HourlyEmployee>();
+  hourlyEmployeeList.emplace_back();
+  hourlyEmployeeList.emplace_back();
+  for (Employee const &employee : regularEmployeeList) {
+    employee.calculateSalary();
+  }
+  for (Employee const &employee : hourlyEmployeeList) {
+    employee.calculateSalary();
+  }
 }
