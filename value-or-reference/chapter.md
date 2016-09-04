@@ -1104,3 +1104,98 @@ TEST_CASE("mutable value object") {
 
 虽然mutable value是可以拷贝的，我们仍然选择把copy constructor禁用了。这样 `auto p3 = p1` 就是不合法的了，
 必须写`auto p3 = duplicate(p1)`。明显后者更能体现真实发生情况。
+
+### immutable value
+
+| 分类 | copyable | movable |  overload == | std::hash | 例子 | 
+| --  |  --       | --      | --          | -- |  -- |
+| immutable value | YES | NO | YES (by values) | YES | 基本值，int，long，日期，钱 |
+
+```ES
+class Point(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __hash__(self):
+        return 31 * hash(self.x) + hash(self.y)
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
+
+    def move(self, offset_x, offset_y):
+        return Point(self.x + offset_x, self.y + offset_y)
+
+p1 = Point(100, 50)
+p2 = Point(100, 70)
+print(p1 == p2)
+print(p1 != p2.move(0, -20))
+some_map = {p1: None} # works
+copy.copy(p1)
+copy.deepcopy(p1)
+```
+
+C++ 版本
+
+```
+class Point {
+public:
+  Point(int x, int y) : x(x), y(y) {}
+  // copy constructor, to enable return by value
+  Point(Point const &that) {
+    x = that.x;
+    y = that.y;
+  }
+  Point &operator=(Point const &that) {
+    x = that.x;
+    y = that.y;
+    return *this;
+  }
+
+  int getX() const { return x; }
+  int getY() const { return y; }
+  Point move(int offset_x, int offset_y) {
+    return Point(x + offset_x, y + offset_y);
+  }
+
+private:
+  int x, y;
+};
+
+bool operator==(Point const &left, Point const &right) {
+  return left.getX() == right.getX() && left.getY() == right.getY();
+}
+
+bool operator!=(Point const &left, Point const &right) {
+  return !(left == right);
+}
+
+namespace std {
+template <> struct hash<Point> {
+  size_t operator()(Point const &p) const {
+    return hash<int>()(p.getX()) * 31 + hash<int>()(p.getY());
+  }
+};
+}
+
+TEST_CASE("immutable value object") {
+  auto p1 = Point(100, 50);
+  auto p2 = Point(100, 70);
+  cout << (p1 == p2) << endl;
+  cout << (p1 != p2.move(0, -20)) << endl;
+  auto some_map = unordered_map<Point, int>();
+  auto p3 = p1; // copy constructor
+  p3 = p2;      // copy assignment
+}
+```
+
+因为immutable value和原生的数值类型一样，没有资源所有权之类的问题。copy constructor 和 copy assignment 的语义都是ok的。

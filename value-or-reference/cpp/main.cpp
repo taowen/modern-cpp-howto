@@ -1,4 +1,5 @@
 #include <catch_with_main.hpp>
+#include <chrono>
 #include <experimental/optional>
 #include <range/v3/all.hpp>
 #include <string>
@@ -318,4 +319,54 @@ TEST_CASE("mutable value object") {
   // 编译错误，PurchaseItems没有实现hash
   auto p3 = duplicate(p1);
   auto p4 = std::move(p3);
+}
+
+class Point {
+public:
+  Point(int x, int y) : x(x), y(y) {}
+  // copy constructor, to enable return by value
+  Point(Point const &that) {
+    x = that.x;
+    y = that.y;
+  }
+  Point &operator=(Point const &that) {
+    x = that.x;
+    y = that.y;
+    return *this;
+  }
+
+  int getX() const { return x; }
+  int getY() const { return y; }
+  Point move(int offset_x, int offset_y) {
+    return Point(x + offset_x, y + offset_y);
+  }
+
+private:
+  int x, y;
+};
+
+bool operator==(Point const &left, Point const &right) {
+  return left.getX() == right.getX() && left.getY() == right.getY();
+}
+
+bool operator!=(Point const &left, Point const &right) {
+  return !(left == right);
+}
+
+namespace std {
+template <> struct hash<Point> {
+  size_t operator()(Point const &p) const {
+    return hash<int>()(p.getX()) * 31 + hash<int>()(p.getY());
+  }
+};
+}
+
+TEST_CASE("immutable value object") {
+  auto p1 = Point(100, 50);
+  auto p2 = Point(100, 70);
+  cout << (p1 == p2) << endl;
+  cout << (p1 != p2.move(0, -20)) << endl;
+  auto some_map = unordered_map<Point, int>();
+  auto p3 = p1; // copy constructor
+  p3 = p2;      // copy assignment
 }
