@@ -22,6 +22,7 @@ java 程序员是幸福的，在 java 的世界里当设计一个 class，实例
 * [对象的业务含义](#business-meaning)
 * [c++是值拷贝的语言](#value-copy)
 * [正确使用值对象的姿势](#value-object-howto)
+* [通过智能指针持有资源](#smart-pointer)
 * [使用c++的语义满足业务建模的需求](#application)
 
 ## 对象的业务含义 {#business-meaning}
