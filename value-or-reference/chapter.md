@@ -1005,3 +1005,102 @@ TEST_CASE("entity object") {
 | 分类 | copyable | movable |  overload == | std::hash | 例子 | 
 | --  |  --       | --      | --          | -- |  -- |
 | mutable value  | YES | YES | YES (by values) | NO | 各种容器，vector，unordered_map |
+
+PurchaseItems 是一个订单的值，而不是订单本身。其自身是没有id的，两个人是不是买了同样的东西，比较PurchaseItems就可以了。
+因为PurchaseItems本身是一个容器，所以mutable的行为也很正常。
+
+Python 版本
+
+```
+class PurchaseItems(object):
+    def __init__(self):
+        self.items = [] # list of (sku, quantity)
+        self.coupon_id = None # the coupon to use
+
+    def __eq__(self, other):
+        return self.items == other.items and self.coupon_id == other.coupon_id
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __hash__(self):
+        raise Exception('mutable do not support hash')
+
+    def __copy__(self):
+        copied = PurchaseItems()
+        copied.items = list(self.items)
+        copied.coupon_id = self.coupon_id
+        return copied
+
+    def __deepcopy__(self, memo):
+        copied = PurchaseItems()
+        copied.items = copy.deepcopy(self.items, memo)
+        copied.coupon_id = self.coupon_id
+        return copied
+
+p1 = PurchaseItems()
+p1.items.append(('S102', 1))
+p1.items.append(('S159', 2))
+p1.coupon_id = 10001
+p2 = PurchaseItems()
+p2.items.append(('S102', 1))
+p2.items.append(('S159', 2))
+p2.coupon_id = 10001
+print(p1 == p2) # True
+print(p1 != p2) # False
+# some_map = {p1: None} # exception
+copy.copy(p1)
+copy.deepcopy(p1)
+```
+
+C++ 版本
+
+```
+class PurchaseItems {
+public:
+  vector<pair<string, int>> items;
+  int couponId;
+  PurchaseItems() = default;
+  // move constructor
+  PurchaseItems(PurchaseItems &&that) {
+    items = std::move(that.items);
+    couponId = that.couponId;
+  }
+
+private:
+  PurchaseItems(PurchaseItems const &) = delete;
+  PurchaseItems &operator=(PurchaseItems const &that) = delete;
+};
+
+bool operator==(PurchaseItems const &left, PurchaseItems const &right) {
+  return left.items == right.items && left.couponId == right.couponId;
+}
+
+bool operator!=(PurchaseItems const &left, PurchaseItems const &right) {
+  return !(left == right);
+}
+
+PurchaseItems duplicate(PurchaseItems const &copyFrom) {
+  PurchaseItems copied;
+  copied.items = copyFrom.items;
+  copied.couponId = copyFrom.couponId;
+  return copied;
+}
+
+TEST_CASE("mutable value object") {
+  PurchaseItems p1;
+  p1.items.emplace_back("S102", 1);
+  p1.items.emplace_back("S159", 2);
+  PurchaseItems p2;
+  p2.items.emplace_back("S102", 1);
+  p2.items.emplace_back("S159", 2);
+  cout << (p1 == p2) << endl;
+  // unordered_map<PurchaseItems, int> some_map{};
+  // 编译错误，PurchaseItems没有实现hash
+  auto p3 = duplicate(p1);
+  auto p4 = std::move(p3);
+}
+```
+
+虽然mutable value是可以拷贝的，我们仍然选择把copy constructor禁用了。这样 `auto p3 = p1` 就是不合法的了，
+必须写`auto p3 = duplicate(p1)`。明显后者更能体现真实发生情况。

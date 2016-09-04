@@ -214,7 +214,7 @@ TEST_CASE("transient object") {
   File file2("/etc/hosts");
   // file1 == file2; 没有默认实现的 ==，无需禁用
   // file1 != file2; 没有默认实现的 !=，无需禁用
-  // unordered_map<File, int> some_map{}; 编译错误，MySocket没有实现hash
+  // unordered_map<File, int> some_map{}; 编译错误，File没有实现hash
   // auto file3 = file; copy constructor 已经被禁用
   // file2 = file1; assignment constructor 已经被禁用
   auto file3 = std::move(file1);
@@ -273,4 +273,49 @@ TEST_CASE("entity object") {
   // auto order3 = order1; copy constructor deleted
   // order2 = order1; copy assignment deleted
   auto order3 = std::move(order1); // move is ok
+}
+
+class PurchaseItems {
+public:
+  vector<pair<string, int>> items;
+  int couponId;
+  PurchaseItems() = default;
+  // move constructor
+  PurchaseItems(PurchaseItems &&that) {
+    items = std::move(that.items);
+    couponId = that.couponId;
+  }
+
+private:
+  PurchaseItems(PurchaseItems const &) = delete;
+  PurchaseItems &operator=(PurchaseItems const &that) = delete;
+};
+
+bool operator==(PurchaseItems const &left, PurchaseItems const &right) {
+  return left.items == right.items && left.couponId == right.couponId;
+}
+
+bool operator!=(PurchaseItems const &left, PurchaseItems const &right) {
+  return !(left == right);
+}
+
+PurchaseItems duplicate(PurchaseItems const &copyFrom) {
+  PurchaseItems copied;
+  copied.items = copyFrom.items;
+  copied.couponId = copyFrom.couponId;
+  return copied;
+}
+
+TEST_CASE("mutable value object") {
+  PurchaseItems p1;
+  p1.items.emplace_back("S102", 1);
+  p1.items.emplace_back("S159", 2);
+  PurchaseItems p2;
+  p2.items.emplace_back("S102", 1);
+  p2.items.emplace_back("S159", 2);
+  cout << (p1 == p2) << endl;
+  // unordered_map<PurchaseItems, int> some_map{};
+  // 编译错误，PurchaseItems没有实现hash
+  auto p3 = duplicate(p1);
+  auto p4 = std::move(p3);
 }
