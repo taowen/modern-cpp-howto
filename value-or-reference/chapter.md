@@ -757,16 +757,16 @@ const & 需要多打好多个字符呢。
 
 | 场景 | 写法 | 含义 |
 | --  |  -- | -- |
-| 用函数生命周期持有资源| void f() { A a; ... } | 在f函数的生命周期内，拥有a所持有的资源。f是a的owner |
-| 用对象持有资源| obj.field = some_value // field 是一个值类型 | 拷贝一份some_value，obj和some_value共享对底层资源的所有权 |
-| 用对象持有资源 | obj.field = std::move(some_value) | 由obj开始负责some_value原来负责的资源 |
-| 函数签名 | void f(A &&a) | 我需要拥有这个参数，是否是独占的取决传入方 |
-| 函数签名 | void f(A const &a) | 我只是一个普通的使用者而已，a不可空 |
-| 调用函数 | f(copy(a)) | 复制一份a的所有权，交给f |
-| 调用函数 | f(std::move(a)) | 放弃对a的所有权，移交给f |
-| 调用函数 | f(a) | 假定已经没有隐式拷贝构造和隐式类型转换这两个邪恶的存在的话，我们可以认为是把a给f用一用，但是f并不拥有a |
-| 返回值 | A f() { return A(); } | 用值类型返回是非常高效的 |
-| 返回值 | void f(A &a) | a既是参数又是返回值 |
+| 持有资源| `void f() { A a; ... }` | 在f函数的生命周期内，拥有a所持有的资源。f是a的owner |
+| 持有资源| `obj.field = some_value // field 是一个值类型` | 拷贝一份some_value，obj和some_value共享对底层资源的所有权 |
+| 持有资源 | `obj.field = std::move(some_value)` | 由obj开始负责some_value原来负责的资源 |
+| 函数签名 | `void f(A &&a)` | 我需要拥有这个参数，是否是独占的取决传入方 |
+| 函数签名 | `void f(A const &a)` | 我只是一个普通的使用者而已，a不可空 |
+| 调用函数 | `f(copy(a))` | 复制一份a的所有权，交给f |
+| 调用函数 | `f(std::move(a))` | 放弃对a的所有权，移交给f |
+| 调用函数 | `f(a)` | 假定已经没有隐式拷贝构造和隐式类型转换这两个邪恶的存在的话，我们可以认为是把a给f用一用，但是f并不拥有a |
+| 返回值 | `A f() { return A(); }` | 用值类型返回是非常高效的 |
+| 返回值 | `void f(A &a)` | a既是参数又是返回值 |
 
 纵观上面的表格，什么时候需要使用copy constructor？ copy constructor 就不应该存在，是语言的一个bug。
 所有的拷贝都应该是显式的方法调用的形式。
@@ -803,12 +803,12 @@ DISALLOW_EVIL_CONSTRUCTORS(Foo);
 
 | 写法 | 含义 |
 | --  |  -- |
-| A a | 在函数生命周期持有资源 |
-| obj.field = a | 在对象的生命周期持有资源 |
-| vector<A> aList | 利用vector代持资源 |
-| unique_ptr<A> a | a通过指针唯一持有资源 |
-| shared_ptr<A> a | a通过指针共享资源，智能计数 |
-| vector<unique_ptr<A>> aList | 利用vector代持资源，支持继承多态 |
+| `A a` | 在函数生命周期持有资源 |
+| `obj.field = a` | 在对象的生命周期持有资源 |
+| `vector<A> aList` | 利用vector代持资源 |
+| `unique_ptr<A> a` | a通过指针唯一持有资源 |
+| `shared_ptr<A> a` | a通过指针共享资源，智能计数 |
+| `vector<unique_ptr<A>> aList` | 利用vector代持资源，支持继承多态 |
 
 什么情况下pointer比reference有优势？原则上尽量使用value和reference，除非以下三种情况：
 * 值可空，因为reference不可空。同时可以考虑用std::optional替代
