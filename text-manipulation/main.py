@@ -20,3 +20,14 @@ def""")
 
     def test_split(self):
         self.assertListEqual(['hello', 'world'], 'hello world'.split(' '))
+
+    def test_build_string(self):
+        # small
+        self.assertEqual('hello world', 'hello' + ' world')
+        # large
+        parts = []
+        parts.append('h')
+        parts.append('e')
+        parts.append('ll')
+        parts.append('o')
+        self.assertEqual('hello', ''.join(parts))

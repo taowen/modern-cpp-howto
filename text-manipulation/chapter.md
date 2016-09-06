@@ -93,7 +93,7 @@ def test_split(self):
     self.assertListEqual(['hello', 'world'], 'hello world'.split(' '))
 ```
 
-C++ 
+C++ 版本
 
 ```c++
 auto split(string_view input, string_view delimeter) {
@@ -107,5 +107,47 @@ TEST_CASE("split") {
   auto parts = split("hello world", " ") | to_vector;
   CHECK("hello" == parts[0]);
   CHECK("world" == parts[1]);
+}
+```
+
+## build string
+
+Python 版本
+
+```python
+def test_build_string(self):
+    # small
+    self.assertEqual('hello world', 'hello' + ' world')
+    # large
+    parts = []
+    parts.append('h')
+    parts.append('e')
+    parts.append('ll')
+    parts.append('o')
+    self.assertEqual('hello', ''.join(parts))
+```
+
+C++ 版本
+
+```c++
+TEST_CASE("build string") {
+  // concat two
+  auto str1 = string_view("hello");
+  auto str2 = string_view(" world");
+  CHECK("hello world" == (view::concat(str1, str2) | to_<string>()));
+
+  // concat many
+  auto str3 = string_view("!");
+  auto str123 = vector<string_view>{str1, str2, str3};
+  CHECK("hello world!" == (str123 | view::join | to_<string>()));
+
+  // string itself is mutable
+  // think every string is java StringBuilder
+  auto mut_s = string();
+  mut_s.reserve(str1.size() + str2.size() + str3.size());
+  mut_s.append(str1);
+  mut_s.append(str2);
+  mut_s.append(str3);
+  CHECK("hello world!" == mut_s);
 }
 ```
