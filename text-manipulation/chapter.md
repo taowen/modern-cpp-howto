@@ -151,3 +151,31 @@ TEST_CASE("build string") {
   CHECK("hello world!" == mut_s);
 }
 ```
+
+## format
+
+Python 版本
+
+```python
+def test_format(self):
+    # positional
+    self.assertEqual('hello world', '{} {}'.format('hello', 'world'))
+    # named
+    self.assertEqual('hello world', '{v1} {v2}'.format(v1='hello', v2='world'))
+    # format
+    self.assertEqual('3.14', '{:.2f}'.format(3.1415))
+```
+
+C++ 版本
+
+```c++
+TEST_CASE("format") {
+  // positional
+  using namespace fmt::literals;
+  CHECK("hello world" == ("{} {}"_format("hello", "world")));
+  // named
+  CHECK("hello world" == ("{v1} {v2}"_format("v1"_a="hello", "v2"_a="world")));
+  // format
+  CHECK("3.14" == ("{:.2f}"_format(3.14159)));
+}
+```

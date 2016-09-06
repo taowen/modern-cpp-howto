@@ -1,0 +1,10 @@
+module fmt {
+    requires cplusplus11
+    header "format.h"
+    header "ostream.h"
+    header "posix.h"
+    header "printf.h"
+    header "string.h"
+    header "time.h"
+    export *
+}

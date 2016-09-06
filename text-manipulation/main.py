@@ -31,3 +31,11 @@ def""")
         parts.append('ll')
         parts.append('o')
         self.assertEqual('hello', ''.join(parts))
+
+    def test_format(self):
+        # positional
+        self.assertEqual('hello world', '{} {}'.format('hello', 'world'))
+        # named
+        self.assertEqual('hello world', '{v1} {v2}'.format(v1='hello', v2='world'))
+        # format
+        self.assertEqual('3.14', '{:.2f}'.format(3.1415))
