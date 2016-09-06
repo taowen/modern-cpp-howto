@@ -179,3 +179,77 @@ TEST_CASE("format") {
   CHECK("3.14" == ("{:.2f}"_format(3.14159)));
 }
 ```
+
+## lower/upper
+
+Python 版本
+
+```python
+def test_lower_upper(self):
+    self.assertEqual('hello world', 'Hello World'.lower())
+    self.assertEqual('HELLO WORLD', 'Hello World'.upper())
+```
+C++ 版本
+
+```c++
+string str_tolower(string_view input, locale l = std::locale()) {
+  return input | view::transform([l](auto c) { return std::tolower(c, l); }) |
+         to_<string>();
+}
+
+string str_toupper(string_view input, locale l = std::locale()) {
+  return input | view::transform([l](auto c) { return std::toupper(c, l); }) |
+         to_<string>();
+}
+
+TEST_CASE("lower/upper") {
+  CHECK("hello world" == (str_tolower("Hello World")));
+  CHECK("HELLO WORLD" == (str_toupper("Hello World")));
+}
+```
+
+## startswith
+
+Python 版本
+
+```python
+def test_startswith(self):
+    self.assertTrue('Hello World'.startswith('He'))
+```
+
+C++ 版本
+
+```c++
+bool str_startswith(string_view haystack, string_view needle) {
+  return ranges::equal(haystack | view::slice(size_t(0), needle.size()),
+                       needle);
+}
+
+TEST_CASE("startswith") {
+  CHECK(str_startswith("Hello World", "He"));
+  CHECK(!str_startswith("Hello World", "Hello World!"));
+}
+```
+
+## endswith
+
+Python 版本
+
+```python
+def test_endswith(self):
+    self.assertTrue("Hello World".endswith('ld'))
+```
+
+C++ 版本
+
+```c++
+bool str_endswith(string_view haystack, string_view needle) {
+  return ranges::equal(
+      haystack | view::slice(ranges::end - needle.size(), ranges::end), needle);
+}
+
+TEST_CASE("endswith") {
+  CHECK(str_endswith("Hello World", "ld"));
+  CHECK(!str_endswith("Hello World", "Hello World!"));
+}
+```

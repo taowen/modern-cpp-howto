@@ -80,7 +80,43 @@ TEST_CASE("format") {
   using namespace fmt::literals;
   CHECK("hello world" == ("{} {}"_format("hello", "world")));
   // named
-  CHECK("hello world" == ("{v1} {v2}"_format("v1"_a="hello", "v2"_a="world")));
+  CHECK("hello world" ==
+        ("{v1} {v2}"_format("v1"_a = "hello", "v2"_a = "world")));
   // format
   CHECK("3.14" == ("{:.2f}"_format(3.14159)));
+}
+
+string str_tolower(string_view input, locale l = std::locale()) {
+  return input | view::transform([l](auto c) { return std::tolower(c, l); }) |
+         to_<string>();
+}
+
+string str_toupper(string_view input, locale l = std::locale()) {
+  return input | view::transform([l](auto c) { return std::toupper(c, l); }) |
+         to_<string>();
+}
+
+TEST_CASE("lower/upper") {
+  CHECK("hello world" == (str_tolower("Hello World")));
+  CHECK("HELLO WORLD" == (str_toupper("Hello World")));
+}
+
+bool str_startswith(string_view haystack, string_view needle) {
+  return ranges::equal(haystack | view::slice(size_t(0), needle.size()),
+                       needle);
+}
+
+TEST_CASE("startswith") {
+  CHECK(str_startswith("Hello World", "He"));
+  CHECK(!str_startswith("Hello World", "Hello World!"));
+}
+
+bool str_endswith(string_view haystack, string_view needle) {
+  return ranges::equal(
+      haystack | view::slice(ranges::end - needle.size(), ranges::end), needle);
+}
+
+TEST_CASE("endswith") {
+  CHECK(str_endswith("Hello World", "ld"));
+  CHECK(!str_endswith("Hello World", "Hello World!"));
 }

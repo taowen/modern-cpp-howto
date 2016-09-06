@@ -39,3 +39,13 @@ def""")
         self.assertEqual('hello world', '{v1} {v2}'.format(v1='hello', v2='world'))
         # format
         self.assertEqual('3.14', '{:.2f}'.format(3.1415))
+
+    def test_lower_upper(self):
+        self.assertEqual('hello world', 'Hello World'.lower())
+        self.assertEqual('HELLO WORLD', 'Hello World'.upper())
+
+    def test_startswith(self):
+        self.assertTrue('Hello World'.startswith('He'))
+
+    def test_endswith(self):
+        self.assertTrue("Hello World".endswith('ld'))
