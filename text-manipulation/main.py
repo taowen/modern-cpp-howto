@@ -1,5 +1,6 @@
 # coding=utf-8
 import unittest
+import re
 
 
 class TextManipulation(unittest.TestCase):
@@ -54,3 +55,23 @@ def""")
         self.assertEqual('hello world', ' hello world'.lstrip())
         self.assertEqual('hello world', 'hello world '.rstrip())
         self.assertEqual('hello world', ' hello world '.strip())
+
+    def test_find(self):
+        self.assertEqual(2, 'hello'.find('l'))
+        self.assertEqual(-1, 'hello'.find('!'))
+        self.assertEqual(3, 'hello'.rfind('l'))
+
+    def test_replace(self):
+        self.assertEqual('he__o', 'hello'.replace('l', '_'))
+        self.assertEqual('he_lo', 'hello'.replace('l', '_', 1))
+
+    def test_regex_search(self):
+        match = re.search('e\wl', 'HELLO', re.IGNORECASE)
+        self.assertEqual('ELL', match.group())
+
+    def test_regex_replace(self):
+        self.assertEqual('HeLLo', re.sub('[l|h]+', lambda match: match.group().upper(), 'hello'))
+
+    def test_numeric_conversion(self):
+        self.assertEqual(42, int('42'))
+        self.assertEqual(4.2, float(4.2))

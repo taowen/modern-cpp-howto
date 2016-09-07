@@ -5,6 +5,7 @@
 #include <fmt/all.hpp>
 #include <locale>
 #include <range/v3/all.hpp>
+#include <regex>
 #include <string>
 
 const int abc = std::__1::numeric_limits<int>::digits;
@@ -144,4 +145,108 @@ TEST_CASE("strip") {
   CHECK(string_view("hello world") == lstrip(" hello world"));
   CHECK(string_view("hello world") == rstrip("hello world "));
   CHECK(string_view("hello world") == strip(" hello world "));
+}
+
+TEST_CASE("find") {
+  auto str = string_view("hello");
+  CHECK(2 == str.find("l"));
+  CHECK(string::npos == str.find("!"));
+  CHECK(3 == str.rfind("l"));
+}
+
+string str_replace(string_view haystack, string_view needle,
+                   string_view replacement,
+                   size_t count = std::numeric_limits<size_t>::max()) {
+  auto needle_size = needle.size();
+  auto replaced = string();
+  replaced.reserve(haystack.size());
+  auto pos = 0;
+  while (count > 0) {
+    auto next = haystack.find(needle, pos);
+    if (next == string::npos) {
+      replaced.append(haystack.substr(pos));
+      return replaced;
+    } else {
+      replaced.append(haystack.substr(pos, next - pos));
+      replaced.append(replacement);
+      pos = next + needle_size;
+      count -= 1;
+    }
+  }
+  replaced.append(haystack.substr(pos));
+  return replaced;
+}
+
+TEST_CASE("replace") {
+  auto str = string_view("hello");
+  CHECK("he__o" == str_replace(str, "l", "_"));
+  CHECK("he_lo" == str_replace(str, "l", "_", 1));
+  CHECK("he__o" == str_replace(str, "l", "_", -1));
+}
+
+TEST_CASE("regex search") {
+  auto m = smatch();
+  auto e = regex(R"!!(e\wl)!!", std::regex_constants::icase);
+  auto s = string("HELLO");
+  CHECK(regex_search(s, m, e));
+  CHECK("ELL" == m[0]);
+}
+
+namespace std {
+
+template <class BidirIt, class Traits, class CharT, class UnaryFunction>
+std::basic_string<CharT>
+regex_replace(BidirIt first, BidirIt last,
+              const std::basic_regex<CharT, Traits> &re, UnaryFunction f) {
+  std::basic_string<CharT> s;
+
+  typename std::match_results<BidirIt>::difference_type positionOfLastMatch = 0;
+  auto endOfLastMatch = first;
+
+  auto callback = [&](const std::match_results<BidirIt> &match) {
+    auto positionOfThisMatch = match.position(0);
+    auto diff = positionOfThisMatch - positionOfLastMatch;
+
+    auto startOfThisMatch = endOfLastMatch;
+    std::advance(startOfThisMatch, diff);
+
+    s.append(endOfLastMatch, startOfThisMatch);
+    s.append(f(match));
+
+    auto lengthOfMatch = match.length(0);
+
+    positionOfLastMatch = positionOfThisMatch + lengthOfMatch;
+
+    endOfLastMatch = startOfThisMatch;
+    std::advance(endOfLastMatch, lengthOfMatch);
+  };
+
+  std::sregex_iterator begin(first, last, re), end;
+  std::for_each(begin, end, callback);
+
+  s.append(endOfLastMatch, last);
+
+  return s;
+}
+
+template <class Traits, class CharT, class UnaryFunction>
+std::string regex_replace(const std::string &s,
+                          const std::basic_regex<CharT, Traits> &re,
+                          UnaryFunction f) {
+  return regex_replace(s.cbegin(), s.cend(), re, f);
+}
+
+} // namespace std
+
+TEST_CASE("regex replace") {
+  auto e = regex(R"!!([h|l]+)!!");
+  auto s = string("hello");
+  auto result = regex_replace(
+      s, e, [](const std::smatch &m) { return str_toupper(m.str(0)); });
+  CHECK("HeLLo" == result);
+}
+
+TEST_CASE("numeric conversion") {
+  CHECK(42 == stoi("42"));
+  CHECK(4.2f == stof("4.2"));
 }
