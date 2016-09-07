@@ -49,3 +49,8 @@ def""")
 
     def test_endswith(self):
         self.assertTrue("Hello World".endswith('ld'))
+
+    def test_strip(self):
+        self.assertEqual('hello world', ' hello world'.lstrip())
+        self.assertEqual('hello world', 'hello world '.rstrip())
+        self.assertEqual('hello world', ' hello world '.strip())

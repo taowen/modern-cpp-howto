@@ -86,13 +86,13 @@ TEST_CASE("format") {
   CHECK("3.14" == ("{:.2f}"_format(3.14159)));
 }
 
-string str_tolower(string_view input, locale l = std::locale()) {
-  return input | view::transform([l](auto c) { return std::tolower(c, l); }) |
+string str_tolower(string_view input, locale const &l = std::locale()) {
+  return input | view::transform([&l](auto c) { return std::tolower(c, l); }) |
          to_<string>();
 }
 
-string str_toupper(string_view input, locale l = std::locale()) {
-  return input | view::transform([l](auto c) { return std::toupper(c, l); }) |
+string str_toupper(string_view input, locale const &l = std::locale()) {
+  return input | view::transform([&l](auto c) { return std::toupper(c, l); }) |
          to_<string>();
 }
 
@@ -119,4 +119,29 @@ bool str_endswith(string_view haystack, string_view needle) {
 TEST_CASE("endswith") {
   CHECK(str_endswith("Hello World", "ld"));
   CHECK(!str_endswith("Hello World", "Hello World!"));
+}
+
+string_view lstrip(string_view input, locale const &l = std::locale()) {
+  auto begin = input.begin();
+  auto left_iterator = ranges::find_if(
+      begin, input.end(), [&l](auto const &c) { return !std::isspace(c, l); });
+  return input.substr(left_iterator - begin);
+}
+
+string_view rstrip(string_view input, locale const &l = std::locale()) {
+  auto rend = input.rend();
+  auto right_iterator =
+      ranges::find_if(input.rbegin(), rend,
+                      [&l](auto const &c) { return !std::isspace(c, l); });
+  return input.substr(0, rend - right_iterator);
+}
+
+string_view strip(string_view input, locale l = std::locale()) {
+  return rstrip(lstrip(input, l), l);
+}
+
+TEST_CASE("strip") {
+  CHECK(string_view("hello world") == lstrip(" hello world"));
+  CHECK(string_view("hello world") == rstrip("hello world "));
+  CHECK(string_view("hello world") == strip(" hello world "));
 }
